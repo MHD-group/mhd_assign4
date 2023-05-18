@@ -3,7 +3,7 @@
 # vim:fenc=utf-8
 #
 # Created On  : 2023-04-03 00:24
-# Last Modified : 2023-04-28 22:08
+# Last Modified : 2023-05-18 22:50
 # Copyright © 2023 myron <yh131996@mail.ustc.edu.cn>
 #
 # Distributed under terms of the MIT license.
@@ -15,8 +15,22 @@ from numpy import pi as π
 from matplotlib import pyplot as plt
 import argparse
 
-# wave's init shape
-def init_w(x):
+# wave's init value (non-conservative)
+# case 0: 2.1 fast
+# case 1: 2.1 slow
+# case 2: 2.2 fast
+# case 3: 2.3 slow
+def init(x, type="W", case=0):
+    W = np.array([\
+        [  2.121,  4.981,  13.27, -0.163, -0.6521, 2.572, 10.29],\
+        [      1,      1,  -15.3,      0,       0,     1,     4],\
+        [  2.219, 0.4442, 0.5048, 0.0961,  0.0961,     1,     1],\
+        [      1,    0.1,-0.9225,      0,       0,     1,     1],\
+        [  3.896,  305.9,      0, -0.058,  -0.226, 3.951,  15.8],\
+        [      1,      1,  -15.3,      0,       0,     1,     4],\
+        [  3.108, 1.4336,      0, 0.2633,  0.2633,   0.1,   0.1],\
+        [      1,    0.1,-0.9225,      0,       0,     1,     1],\
+        ], float)
     N = x.size
     tmp = np.zeros((3, N), dtype=x.dtype)
     conds = [x <= -0, x > 0]
