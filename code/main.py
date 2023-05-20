@@ -18,6 +18,8 @@ import argparse
 # β = 2 γ = 1.6667 accroding to xlsx
 _β = 2
 _γ = 1.6667
+_μ = 1
+_Hx = 5
 
 def W2U(W):
     U = W.copy()
@@ -63,29 +65,50 @@ def init(x, type="W", case=0):
         funcs = U[case*2:case*2+2,:].T
     for i in range(7):
         tmp[i] = np.piecewise(x, conds, funcs[i])
-    return tmp
+    return tmp.T
+
+def U2F(U):
+    F = U.copy()
+    W = U2W(U)
+    F[:, 0] = U[:, 3]
+    F[:, 1] = U[:, 2] * (W[:,2]**2 + W[:,3]**2 + W[:,4]**2\
+              + (_γ*_β*W[:,1])/(U[:,0] * (_γ - 1)))\
+              + 2*(U[:,5]**2*W[:,2] + U[:,6]**2*W[:,2] -\
+              _Hx * U[:,5] * W[:,3] - _Hx * U[:,6] * W[:, 4])
+    F[:, 2] = U[:, 2] * W[:, 2] + 0.5*(_β * W[:,1] +\
+              U[:, 5]**2 + U[:, 6]**2)
+    F[:, 3] = U[:, 2] * W[:, 3] - _Hx * U[:, 5]
+    F[:, 4] = U[:, 2] * W[:, 4] - _Hx * U[:, 6]
+    F[:, 5] = U[:, 5] * W[:, 2] - _Hx * W[:, 3]
+    F[:, 6] = U[:, 6] * W[:, 2] - _Hx * W[:, 4]
+    return F
 
 def Upwind_u(u, C=0.5, t=100):
     #print('calling upwind, ', w, γ, C, t)
     print(u.shape)
-    tmp_u = np.expand_dims(np.pad(u, ((0,), (1,)), 'edge').T, 0).repeat(2, axis=0)
+    f = U2F(u)
+    tmp_u = np.expand_dims(np.pad(u, ((1,), (0,)), 'edge'), 0).repeat(2, axis=0)
+    tmp_f = np.expand_dims(np.pad(f, ((1,), (0,)), 'edge'), 0).repeat(2, axis=0)
     print(tmp_u.shape)
-    return u
-#    for n in range(t):
-#        cur = n%2
-#        nex = (n%2 + 1)%2
-#        c_u = tmp_u[cur,:,:]
-#        dia_λ = U2λ(c_u, γ)
-#        pos = np.where(dia_λ>0, dia_λ, 0)
-#        neg = np.where(dia_λ<=0, dia_λ, 0)
-#        R = U2R(c_u, γ)
-#        L = U2L(c_u, γ)
-#        up = c_u - np.pad(np.roll(c_u, 1, axis=0)[1:-1,:,:], ((1,),(0,),(0,)), 'edge')
-#        um = np.pad(np.roll(c_u, -1, axis=0)[1:-1,:,:], ((1,),(0,),(0,)), 'edge') - c_u
-#        tmp_u[nex, :, :, :] =  c_u \
-#                - C * (R@pos@L@up + R@neg@L@um)
-#        result = tmp_u[nex,1:-1,:,:]
-#    return U2w(result, γ)
+    print(tmp_f.shape)
+    for n in range(t):
+        cur = n%2
+        nex = (n%2 + 1)%2
+        c_f = tmp_f[cur,:,:]
+        fp = c_f - np.pad(np.roll(c_f, 1, axis=0)[1:-1,:], ((1,),(0,)), 'edge')
+        tmp_u[nex,:,:] = tmp_u[cur,:,:] + C * fp
+        #dia_λ = U2λ(c_u, γ)
+        #pos = np.where(dia_λ>0, dia_λ, 0)
+        #neg = np.where(dia_λ<=0, dia_λ, 0)
+        #R = U2R(c_u, γ)
+        #L = U2L(c_u, γ)
+        #up = c_u - np.pad(np.roll(c_u, 1, axis=0)[1:-1,:,:], ((1,),(0,),(0,)), 'edge')
+        #um = np.pad(np.roll(c_u, -1, axis=0)[1:-1,:,:], ((1,),(0,),(0,)), 'edge') - c_u
+        #tmp_u[nex, :, :, :] =  c_u \
+        #        - C * (R@pos@L@up + R@neg@L@um)
+        result = tmp_u[nex,1:-1,:]
+    print("result:", result.shape)
+    return result
 
 ## conservation
 #def w2U(w, γ=1.4):
@@ -340,17 +363,17 @@ if  __name__ == '__main__':
     # Δt
     t = C * res
 
-    u = init(x, "U", 0)
+    u = init(x, "U", 3)
 
     ## show init stats
     #print(u.shape)
     #fig, axs = plt.subplots(7,
     #                        1,
     #                        figsize=(40, 12))
-    #print(range(np.size(u, 0)))
-    #for i in range(np.size(u, 0)):
+    #print(range(np.size(u, 1)))
+    #for i in range(np.size(u, 1)):
     #    print(i)
-    #    axs[i].plot(x, u[i,:])
+    #    axs[i].plot(x, u[:,i])
     #plt.show()
  
 
@@ -368,13 +391,13 @@ if  __name__ == '__main__':
         else:
             print("error input function")
         print(j)
-        axs[j*7+0].plot(x, output[0, :])
-        axs[j*7+1].plot(x, output[1, :])
-        axs[j*7+2].plot(x, output[2, :])
-        axs[j*7+3].plot(x, output[3, :])
-        axs[j*7+4].plot(x, output[4, :])
-        axs[j*7+5].plot(x, output[5, :])
-        axs[j*7+6].plot(x, output[6, :])
+        axs[j*7+0].plot(x, output[:, 0])
+        axs[j*7+1].plot(x, output[:, 1])
+        axs[j*7+2].plot(x, output[:, 2])
+        axs[j*7+3].plot(x, output[:, 3])
+        axs[j*7+4].plot(x, output[:, 4])
+        axs[j*7+5].plot(x, output[:, 5])
+        axs[j*7+6].plot(x, output[:, 6])
     plt.show()
 
 
