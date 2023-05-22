@@ -1,0 +1,8 @@
+0	0	1	0	0	0	0
+(2 Hx \[Rho] (Hy my+Hz mz)+mx (\[Rho] (-\[Gamma] \[CapitalEpsilon]+(\[Gamma]-2) Hy^2+(\[Gamma]-2) Hz^2)+2 (\[Gamma]-1) my^2+2 (\[Gamma]-1) mz^2)+2 (\[Gamma]-1) mx^3)/\[Rho]^3	(\[Gamma] mx)/\[Rho]	-((-\[Gamma] \[CapitalEpsilon] \[Rho]+(\[Gamma]-2) Hy^2 \[Rho]+(\[Gamma]-2) Hz^2 \[Rho]+3 (\[Gamma]-1) mx^2+(\[Gamma]-1) my^2+(\[Gamma]-1) mz^2)/\[Rho]^2)	-((2 (Hx Hy \[Rho]+(\[Gamma]-1) mx my))/\[Rho]^2)	-((2 (Hx Hz \[Rho]+(\[Gamma]-1) mx mz))/\[Rho]^2)	-((2 (Hx my+(\[Gamma]-2) Hy mx))/\[Rho])	-((2 (Hx mz+(\[Gamma]-2) Hz mx))/\[Rho])
+((\[Gamma]-3) mx^2+(\[Gamma]-1) (my^2+mz^2))/(2 \[Rho]^2)	(\[Gamma]-1)/2	-(((\[Gamma]-3) mx)/\[Rho])	(my-\[Gamma] my)/\[Rho]	(mz-\[Gamma] mz)/\[Rho]	(\[Gamma]-2) (-Hy)	(\[Gamma]-2) (-Hz)
+-((mx my)/\[Rho]^2)	0	my/\[Rho]	mx/\[Rho]	0	-Hx	0
+-((mx mz)/\[Rho]^2)	0	mz/\[Rho]	0	mx/\[Rho]	0	-Hx
+(Hx my-Hy mx)/\[Rho]^2	0	Hy/\[Rho]	-(Hx/\[Rho])	0	mx/\[Rho]	0
+(Hx mz-Hz mx)/\[Rho]^2	0	Hz/\[Rho]	0	-(Hx/\[Rho])	0	mx/\[Rho]
+
