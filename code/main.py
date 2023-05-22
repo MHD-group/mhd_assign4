@@ -83,6 +83,64 @@ def U2F(U):
     F[:, 6] = U[:, 6] * W[:, 2] - _Hx * W[:, 4]
     return F
 
+def U2A(U):
+    ga = _γ
+    Hx = _Hx
+    print(U.shape)
+    A = np.zeros((np.size(U, 0), 7, 7), float)
+    print(A.shape)
+    A[:,0,0] = 0
+    A[:,0,1] = 0
+    A[:,0,2] = 1
+    A[:,0,3] = 0
+    A[:,0,4] = 0
+    A[:,0,5] = 0
+    A[:,0,6] = 0
+    A[:,1,0] = (2*Hx*U[:,0]*(U[:,5]*U[:,3]+U[:,6]*U[:,4])+U[:,2]*(U[:,0]*(-ga*U[:,1]+(ga-2)*U[:,5]**2+(ga-2)*U[:,6]**2)+2*(ga-1)*U[:,3]**2+2*(ga-1)*U[:,4]**2)+2*(ga-1)*U[:,2]**3)/U[:,0]**3
+    A[:,1,1] = (ga*U[:,2])/U[:,0]
+    A[:,1,2] = -((-ga*U[:,1]*U[:,0]+(ga-2)*U[:,5]**2*U[:,0]+(ga-2)*U[:,6]**2*U[:,0]+3*(ga-1)*U[:,2]**2+(ga-1)*U[:,3]**2+(ga-1)*U[:,4]**2)/U[:,0]**2)
+    A[:,1,3] = -((2*(Hx*U[:,5]*U[:,0]+(ga-1)*U[:,2]*U[:,3]))/U[:,0]**2)
+    A[:,1,4] = -((2*(Hx*U[:,6]*U[:,0]+(ga-1)*U[:,2]*U[:,4]))/U[:,0]**2)
+    A[:,1,5] = -((2*(Hx*U[:,3]+(ga-2)*U[:,5]*U[:,2]))/U[:,0])
+    A[:,1,6] = -((2*(Hx*U[:,4]+(ga-2)*U[:,6]*U[:,2]))/U[:,0])
+    A[:,2,0] = ((ga-3)*U[:,2]**2+(ga-1)*(U[:,3]**2+U[:,4]**2))/(2*U[:,0]**2)
+    A[:,2,1] = (ga-1)/2
+    A[:,2,2] = -(((ga-3)*U[:,2])/U[:,0])
+    A[:,2,3] = (U[:,3]-ga*U[:,3])/U[:,0]
+    A[:,2,4] = (U[:,4]-ga*U[:,4])/U[:,0]
+    A[:,2,5] = (ga-2)*(-U[:,5])
+    A[:,2,6] = (ga-2)*(-U[:,6])
+    A[:,3,0] = -((U[:,2]*U[:,3])/U[:,0]**2)
+    A[:,3,1] = 0
+    A[:,3,2] = U[:,3]/U[:,0]
+    A[:,3,3] = U[:,2]/U[:,0]
+    A[:,3,4] = 0
+    A[:,3,5] = -Hx
+    A[:,3,6] = 0
+    A[:,4,0] = -((U[:,2]*U[:,4])/U[:,0]**2)
+    A[:,4,1] = 0
+    A[:,4,2] = U[:,4]/U[:,0]
+    A[:,4,3] = 0
+    A[:,4,4] = U[:,2]/U[:,0]
+    A[:,4,5] = 0
+    A[:,4,6] = -Hx
+    A[:,5,0] = (Hx*U[:,3]-U[:,5]*U[:,2])/U[:,0]**2
+    A[:,5,1] = 0
+    A[:,5,2] = U[:,5]/U[:,0]
+    A[:,5,3] = -(Hx/U[:,0])
+    A[:,5,4] = 0
+    A[:,5,5] = U[:,2]/U[:,0]
+    A[:,5,6] = 0
+    A[:,6,0] = (Hx*U[:,4]-U[:,6]*U[:,2])/U[:,0]**2
+    A[:,6,1] = 0
+    A[:,6,2] = U[:,6]/U[:,0]
+    A[:,6,3] = 0
+    A[:,6,4] = -(Hx/U[:,0])
+    A[:,6,5] = 0
+    A[:,6,6] = U[:,2]/U[:,0]
+    return A
+
+
 def Upwind_u(u, C=0.5, t=100):
     #print('calling upwind, ', w, γ, C, t)
     print(u.shape)
@@ -363,7 +421,9 @@ if  __name__ == '__main__':
     # Δt
     t = C * res
 
-    u = init(x, "U", 3)
+    u = init(x, "U", 1)
+    A = U2A(u)
+    print(A)
 
     ## show init stats
     #print(u.shape)
@@ -375,30 +435,30 @@ if  __name__ == '__main__':
     #    print(i)
     #    axs[i].plot(x, u[:,i])
     #plt.show()
- 
 
 
-    fig, axs = plt.subplots(7,
-                            len(methods),
-                            figsize=(40, 12))
-    for (method, j) in zip(methods, range(len(methods))):
-        n_t = int(T/t)
-        if method == "Upwind":
-            output = Upwind_u(u, C, n_t)
-        elif method == "LaxWendroff":
-            #S1 = Lax(w, C, n_t)
-            print("error input function")
-        else:
-            print("error input function")
-        print(j)
-        axs[j*7+0].plot(x, output[:, 0])
-        axs[j*7+1].plot(x, output[:, 1])
-        axs[j*7+2].plot(x, output[:, 2])
-        axs[j*7+3].plot(x, output[:, 3])
-        axs[j*7+4].plot(x, output[:, 4])
-        axs[j*7+5].plot(x, output[:, 5])
-        axs[j*7+6].plot(x, output[:, 6])
-    plt.show()
+
+    #fig, axs = plt.subplots(7,
+    #                        len(methods),
+    #                        figsize=(40, 12))
+    #for (method, j) in zip(methods, range(len(methods))):
+    #    n_t = int(T/t)
+    #    if method == "Upwind":
+    #        output = Upwind_u(u, C, n_t)
+    #    elif method == "LaxWendroff":
+    #        #S1 = Lax(w, C, n_t)
+    #        print("error input function")
+    #    else:
+    #        print("error input function")
+    #    print(j)
+    #    axs[j*7+0].plot(x, output[:, 0])
+    #    axs[j*7+1].plot(x, output[:, 1])
+    #    axs[j*7+2].plot(x, output[:, 2])
+    #    axs[j*7+3].plot(x, output[:, 3])
+    #    axs[j*7+4].plot(x, output[:, 4])
+    #    axs[j*7+5].plot(x, output[:, 5])
+    #    axs[j*7+6].plot(x, output[:, 6])
+    #plt.show()
 
 
 
