@@ -86,9 +86,7 @@ def U2F(U):
 def U2A(U):
     ga = _γ
     Hx = _Hx
-    print(U.shape)
     A = np.zeros((np.size(U, 0), 7, 7), float)
-    print(A.shape)
     A[:,0,0] = 0
     A[:,0,1] = 0
     A[:,0,2] = 1
@@ -141,20 +139,34 @@ def U2A(U):
     return A
 
 
-def Upwind_u(u, C=0.5, t=100):
+def Lax_u(u, C=0.5, t=100):
     #print('calling upwind, ', w, γ, C, t)
-    print(u.shape)
+    N = np.size(u,0)
+    print(N)
     f = U2F(u)
-    tmp_u = np.expand_dims(np.pad(u, ((1,), (0,)), 'edge'), 0).repeat(2, axis=0)
-    tmp_f = np.expand_dims(np.pad(f, ((1,), (0,)), 'edge'), 0).repeat(2, axis=0)
+    a = U2A(u)
+    tmp_u = np.expand_dims(np.pad(u, ((1,), (0,)), 'edge'), [0, -1]).repeat(2, axis=0)
+    F = np.expand_dims(np.pad(f, ((1,), (0,)), 'edge'), [-1])
+    A = np.pad(a, ((1,), (0,), (0,)), 'edge')
+    print("----------")
     print(tmp_u.shape)
-    print(tmp_f.shape)
     for n in range(t):
         cur = n%2
         nex = (n%2 + 1)%2
-        c_f = tmp_f[cur,:,:]
-        fp = c_f - np.pad(np.roll(c_f, 1, axis=0)[1:-1,:], ((1,),(0,)), 'edge')
-        tmp_u[nex,:,:] = tmp_u[cur,:,:] + C * fp
+        F = np.expand_dims(U2F(tmp_u[cur,:,:,0]), [-1])
+        A = U2A(tmp_u[cur,:,:,0])
+        if n == 0:
+            print(t)
+            print(F.shape)
+            print(A.shape)
+        for i in range(N):
+            I = i+1
+            tmp_u[nex, I:I+1, :, :] = tmp_u[cur, I:I+1, :, :]\
+                -0.5*C*(F[I+1:I+2, :, :] - F[I-1:I, :, :])\
+                +0.5*C*C*(0.5*(A[I+1:I+2,:,:] + A[I:I+1,:,:])@(F[I+1:I+2,:,:] - F[I:I+1,:,:])\
+                -0.5*(A[I:I+1,:,:] + A[I-1:I,:,:])@(F[I:I+1,:,:] - F[I-1:I,:,:]))
+        #fp = c_f - np.pad(np.roll(c_f, 1, axis=0)[1:-1,:], ((1,),(0,)), 'edge')
+        #tmp_u[nex,:,:] = tmp_u[cur,:,:] + C * fp
         #dia_λ = U2λ(c_u, γ)
         #pos = np.where(dia_λ>0, dia_λ, 0)
         #neg = np.where(dia_λ<=0, dia_λ, 0)
@@ -422,8 +434,8 @@ if  __name__ == '__main__':
     t = C * res
 
     u = init(x, "U", 1)
-    A = U2A(u)
-    print(A)
+    # A = U2A(u)
+    # print("A:", A.shape)
 
     ## show init stats
     #print(u.shape)
@@ -438,27 +450,27 @@ if  __name__ == '__main__':
 
 
 
-    #fig, axs = plt.subplots(7,
-    #                        len(methods),
-    #                        figsize=(40, 12))
-    #for (method, j) in zip(methods, range(len(methods))):
-    #    n_t = int(T/t)
-    #    if method == "Upwind":
-    #        output = Upwind_u(u, C, n_t)
-    #    elif method == "LaxWendroff":
-    #        #S1 = Lax(w, C, n_t)
-    #        print("error input function")
-    #    else:
-    #        print("error input function")
-    #    print(j)
-    #    axs[j*7+0].plot(x, output[:, 0])
-    #    axs[j*7+1].plot(x, output[:, 1])
-    #    axs[j*7+2].plot(x, output[:, 2])
-    #    axs[j*7+3].plot(x, output[:, 3])
-    #    axs[j*7+4].plot(x, output[:, 4])
-    #    axs[j*7+5].plot(x, output[:, 5])
-    #    axs[j*7+6].plot(x, output[:, 6])
-    #plt.show()
+    fig, axs = plt.subplots(7,
+                            len(methods),
+                            figsize=(40, 12))
+    for (method, j) in zip(methods, range(len(methods))):
+        n_t = int(T/t)
+        if method == "Upwind":
+            # output = Upwind_u(u, C, n_t)
+            print("error input function")
+        elif method == "LaxWendroff":
+            output = Lax_u(u, C, n_t)
+        else:
+            print("error input function")
+        print(j)
+        axs[j*7+0].plot(x, output[:, 0])
+        axs[j*7+1].plot(x, output[:, 1])
+        axs[j*7+2].plot(x, output[:, 2])
+        axs[j*7+3].plot(x, output[:, 3])
+        axs[j*7+4].plot(x, output[:, 4])
+        axs[j*7+5].plot(x, output[:, 5])
+        axs[j*7+6].plot(x, output[:, 6])
+    plt.show()
 
 
 

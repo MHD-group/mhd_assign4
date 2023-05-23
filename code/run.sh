@@ -1,1 +1,1 @@
-python main.py -n 333 -s -1 -e 1 -C 0.4 -t 0.8 -m Upwind
+python main.py -n 500 -s -1 -e 1 -C 0.2 -t 0.2 -m LaxWendroff
