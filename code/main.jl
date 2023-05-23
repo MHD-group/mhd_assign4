@@ -11,10 +11,11 @@ using LaTeXStrings
 # %%
 @pyimport matplotlib.pyplot as plt
 @pyimport matplotlib # https://stackoverflow.com/questions/3899980/how-to-change-the-font-size-on-a-matplotlib-plot
-matplotlib.rc("font", size=9)
+matplotlib.rc("font", size=8)
 
-const γ = 1.4
+const γ = 5/3
 const β = 2.0
+const Hx = 5.0
 
 # %%
 
@@ -27,7 +28,7 @@ function w2U(w::Vector)::Vector
 	Hy = w[6]
 	Hz = w[7]
 	return [ρ
-			ρ*(vx^2 + vy^2 +vz^2) + Hy^2 + Hz^2 + β*p/(γ-1)
+			ρ*(vx^2 + vy^2 +vz^2) + Hy^2 + Hz^2 + β*p/(γ-1) 
 			ρ*vx
 			ρ*vy
 			ρ*vz
@@ -43,14 +44,14 @@ function w2U(w::Matrix)::Matrix
 	return U
 end
 
-function w2A(w::Vector)::Matrix
-	ρ = w[1]
-	E = w[2]
-	mx = w[3]
-	my = w[4]
-	mz = w[5]
-	Hy = w[6]
-	Hz = w[7]
+function U2A(U::Vector)::Matrix
+	ρ = U[1]
+	E = U[2]
+	mx = U[3]
+	my = U[4]
+	mz = U[5]
+	Hy = U[6]
+	Hz = U[7]
 	A = [0    0    1    0    0    0    0
 	(2*Hx*ρ*(Hy*my+Hz*mz)+mx*(ρ*(-γ*E+(γ-2)*Hy^2+(γ-2)*Hz^2)+2*(γ-1)*my^2+2*(γ-1)*mz^2)+2*(γ-1)*mx^3)/ρ^3    (γ*mx)/ρ    -((-γ*E*ρ+(γ-2)*Hy^2*ρ+(γ-2)*Hz^2*ρ+3*(γ-1)*mx^2+(γ-1)*my^2+(γ-1)*mz^2)/ρ^2)    -((2*(Hx*Hy*ρ+(γ-1)*mx*my))/ρ^2)    -((2*(Hx*Hz*ρ+(γ-1)*mx*mz))/ρ^2)    -((2*(Hx*my+(γ-2)*Hy*mx))/ρ)    -((2*(Hx*mz+(γ-2)*Hz*mx))/ρ)
 	((γ-3)*mx^2+(γ-1)*(my^2+mz^2))/(2*ρ^2)    (γ-1)/2    -(((γ-3)*mx)/ρ)    (my-γ*my)/ρ    (mz-γ*mz)/ρ    (γ-2)*(-Hy)    (γ-2)*(-Hz)
@@ -60,17 +61,17 @@ function w2A(w::Vector)::Matrix
 	(Hx*mz-Hz*mx)/ρ^2    0    Hz/ρ    0    -(Hx/ρ)    0    mx/ρ]
 end
 
-function w2F(w::Vector)::Matrix
-	ρ = w[1]
-	E = w[2]
-	mx = w[3]
-	my = w[4]
-	mz = w[5]
-	Hy = w[6]
-	Hz = w[7]
+function U2F(U::Vector)::Vector
+	ρ = U[1]
+	E = U[2]
+	mx = U[3]
+	my = U[4]
+	mz = U[5]
+	Hy = U[6]
+	Hz = U[7]
 	F=[mx
-(-2*Hx*ρ*(Hy*my+Hz*mz)+mx*(ρ*(ρ*ρ-((ρ-2)*Hy^2)-(ρ-2)*Hz^2)-((ρ-1)*my^2)-(ρ-1)*mz^2)-((ρ-1)*mx^3))/ρ^2
-1/2*(-(((ρ-1)*(-ρ*ρ+Hy^2*ρ+Hz^2*ρ+mx^2+my^2+mz^2))/ρ)+Hy^2+Hz^2+(2*mx^2)/ρ)
+(-2*Hx*ρ*(Hy*my+Hz*mz)+mx*(ρ*(γ*E-((γ-2)*Hy^2)-(γ-2)*Hz^2)-((γ-1)*my^2)-(γ-1)*mz^2)-((γ-1)*mx^3))/ρ^2
+1/2*(-(((γ-1)*(-E*ρ+Hy^2*ρ+Hz^2*ρ+mx^2+my^2+mz^2))/ρ)+Hy^2+Hz^2+(2*mx^2)/ρ)
 (mx*my)/ρ-Hx*Hy
 (mx*mz)/ρ-Hx*Hz
 (Hy*mx-Hx*my)/ρ
@@ -78,18 +79,20 @@ function w2F(w::Vector)::Matrix
 end
 
 
-function lax_wendroff(wp::Matrix, w::Matrix, C::AbstractFloat)
-	for l in 2:size(w, 2)-1
-		Am = 0.5*(w[:, l]+w[:, l-1]) |> w2A
-		Ap = 0.5*(w[:, l]+w[:, l+1]) |> w2A
-		Fm = w[:, l-1] |> w2F
-		Fp = w[:, l+1] |> w2F
-		F = w[:, l] |> w2F
-		wp[:, l] .= w[:, l] - 0.5C*(Fp - Fm) +
-		0.5C^2*(Ap*(Fp-F) - Am * (F-Fm))
+function lax_wendroff(UP::Matrix, U::Matrix, C::AbstractFloat)
+	for l in 2:size(U, 2)-1
+	Am = 0.5*(U[:, l]+U[:, l-1]) |> U2A
+	Ap = 0.5*(U[:, l]+U[:, l+1]) |> U2A
+	Fm = U[:, l-1] |> U2F
+	Fp = U[:, l+1] |> U2F
+	F = U[:, l] |> U2F
+	UP[:, l] .= U[:, l] - 0.5C*(Fp - Fm) +
+	0.5C^2*(Ap*(Fp-F) - Am * (F-Fm))
+	# println(0.5C^2*(Ap*(Fp-F) - Am * (F-Fm)))
+	# UP[:, l] .= U[:, l] - 0.5C*(Fp - Fm)
 	end
-	wp[:, 1] .= w[:, 2] 
-	wp[:, end] .= w[:, end-1] 
+	UP[:, 1] .= U[:, 2] 
+	UP[:, end] .= U[:, end-1] 
 end
 
 # λ=[1,2,3.]
@@ -187,40 +190,61 @@ nx=261
 # %%
 function problem(C::AbstractFloat, f::Function, nx::Int = 261)
 
+	labels=[L"$\rho$"
+			L"$E$"
+			L"$ρv_x$"
+			L"$ρv_y$"
+			L"$ρv_z$"
+			L"$H_y$"
+			L"$H_z$"]
+
 	# title = L"$m$"
 	# t=0.002
 	C_str=string(round(C, digits=3))
-	t=0.14
+	t=0.3
 	# C = 0.7/2.633
 	Δx= 2/nx
 	Δt = Δx * C
 	# f = limiter
 	f = lax_wendroff
-	c=Cells(step=Δx, init=init2)
 	title = f |> f2title
 	# fig, ax=plt.subplots(3,1, figsize=(12,13))
 
-	fig, ax=plt.subplots(3,1)
-	fig.suptitle("t = "*string(t)*"    "*"C = "*C_str*"    "*title, fontsize=16)
-	ax[1].plot(c.x, c.u[1, :], "-.k", linewidth=0.2, label=L"$\rho$(初始值)")
-	ax[2].plot(c.x, c.u[2, :], "-.k", linewidth=0.2, label=L"$E$(初始值)")
-	ax[3].plot(c.x, c.u[3, :], "-.k", linewidth=0.2, label=L"$ρv_x$(初始值)")
-	ax[1].legend()
-	ax[2].legend()
-	ax[3].legend()
-	plt.savefig("../figures/初值.pdf", bbox_inches="tight")
-	plt.show()
 
-	flg=true # flag
-	# for _ = 1:round(Int, t/Δt)
-	for _ = 1:round(Int, 15)
-		flg=update!(c, flg, f, C)
+	init = init4
+	c=Cells(step=Δx, init=init)
+	fig, ax=plt.subplots(7,1)
+	fig.suptitle("t = "*string(t)*"    "*"C = "*C_str*"    "*title, fontsize=9)
+	for i = 1:7
+		ax[i].plot(c.x, c.u[i, :], "-.k", linewidth=0.2, label=labels[i]*"(初始值)")
 	end
+	flg=true # flag
+	N = round(Int, t/Δt)
+	for n = 1:N
+		flg=update!(c, flg, f, C)
+		if n == round(Int, N/3) || n == round(Int, 2*N/3) || n == N
+			for i = 1:7
+				ax[i].plot(c.x, c.u[i, :], linewidth=0.2, label=labels[i]*"(t = $(round(n * Δt, digits=2))s)")
+				ax[i].legend()
+			end
+		end
+	end
+	plt.savefig("../figures/"*string(init)*".pdf", bbox_inches="tight")
+	plt.show()
 
 	w=current(c, flg)
 	tw=similar(w)
 	true_sol(c.x, tw, t)
 
+	plt.show()
+
+	c=Cells(step=Δx, init=init2)
+	flg=true # flag
+	for _ = 1:260
+		flg=update!(c, flg, f, 0.1)
+	end
+	plt.plot(c.x, c.u[1, :], linewidth=1, color="b", label=L"$\rho$(真实解)", alpha=0.5)
+	plt.show()
 
 	ax[1].plot(c.x, tw[1, :], linewidth=1, color="k", label=L"$\rho$(真实解)", alpha=0.5)
 	ax[1].plot(c.x, w[1, :], "--b", linewidth=1, marker="o", markeredgewidth=0.4, markersize=4,  markerfacecolor="none", label=L"$\rho$(数值解)")

@@ -2,14 +2,34 @@
 %,draft
 ]{article}
 
+
 \usepackage{ctex}
-\usepackage{amsmath}
 \usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{physics}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=Blue4Link,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    pdfauthor=徐均益
+    }
+\definecolor{Blue4Link}{RGB}{46,49,146}
+\definecolor{myOrange}{RGB}{178,76,0}
+\definecolor{green4eye}{RGB}{0,120,2}%
+\definecolor{blue4eye}{RGB}{1,126,218}%
+\definecolor{cyan4eye}{RGB}{31,186,190}%
+\definecolor{myhighlight}{RGB}{255,214,161}
+\definecolor{mybackground}{RGB}{204,232,207}
+\usepackage{geometry}
+\usepackage{natbib}
+\usepackage{subcaption}
 \usepackage{epstopdf}
 \usepackage{tikz}
 \usepackage{psfrag}
 \usepackage{natbib}
-\usepackage{hyperref}
 
 \def\due{2023 年 5 月 26 日周五 08:40}
 \def\Term{2023 年春季}
@@ -21,10 +41,11 @@
 
 \title{一维磁流体力学激波 --- 第 4 次作业\footnote{\Term\Course}}
 
-\author{
-  郑惠南
+\author{徐均益\footnote{ID: SA22214015 Email: jyxu@mail.ustc.edu.cn}
   \and
-  高新亮\footnote{Email: gaoxl@ustc.edu.cn}
+  余航\footnote{ID: SA22168021 Email: yh131996@mail.ustc.edu.cn}
+  \and
+  陈宇韬\footnote{ID: SA22214014 Email: chenyut@mail.ustc.edu.cn}
 }
 
 \date{%
@@ -32,7 +53,8 @@
 %CAS Key Laboratory for Basic Plasma Physics, School of Earth and Space Sciences,
 %\\
 %University of Science and Technology of China, Hefei, Anhui 230026, China
-中国科学技术大学地球与空间科学学院, 合肥 230026
+中国科学技术大学核科学技术学院, 合肥 230026 \\
+中国科学技术大学物质科学研究院等离子所, 合肥 230026
 %
 }
 
@@ -481,6 +503,50 @@ v_x H_z - v_z H_x
 \end{align}
 这里 $v^2 = v_x^2 + v_y^2 + v_z^2$. 若取 $\rho_0 = 1$, $p_0 = 1$, $v_0 = 1$, $H_0 = 1/\sqrt{4\pi}$, 则 $\beta = 2$.
 
+\subsection{\textit{Lax-Wendroff}格式}
+\textit{Lax-Wendroff}格式适用于守恒型方程
+\begin{align}
+\frac{\partial \vb w}{\partial t} + \frac{\partial \vb F}{\partial x} = 0
+\end{align}
+其中差分格式为
+\begin{align}
+u_j^{n+1} =& u_j^n - \frac{\Delta t}{2\Delta x} (F_{j+1}^n - F_{j-1}^n) \nonumber\\
+& + \frac{\Delta t^2}{2\Delta x^2} \left[A_{j+1/2}^n (F_{j+1}^n-F_j^n) - A_{j-1/2}^n (F_j^n -
+F_{j-1}^n)\right]
+\end{align}
+其中 $A = \frac{\partial F}{\partial u}$, $A$ 的表达式为
+\begin{equation}
+   \mqty[
+0  &  0  &  1  &  0  &  0  &  0  &  0 \\
+% (2 H_x \rho (H_y m_y+H_z m_z)+m_x (\rho (-\gamma E +(\gamma-2) H_y^2+(\gamma-2) H_z^2)+2 (\gamma-1) m_y^2+2 (\gamma-1) m_z^2)+2 (\gamma-1) m_x^3)/\rho^3  &  (\gamma m_x)/\rho  &  -((-\gamma E \rho+(\gamma-2) H_y^2 \rho+(\gamma-2) H_z^2 \rho+3 (\gamma-1) m_x^2+(\gamma-1) m_y^2+(\gamma-1) m_z^2)/\rho^2)  &  -((2 (H_x H_y \rho+(\gamma-1) m_x m_y))/\rho^2)  &  -((2 (H_x H_z \rho+(\gamma-1) m_x m_z))/\rho^2)  &  -((2 (H_x m_y+(\gamma-2) H_y m_x))/\rho)  &  -((2 (H_x m_z+(\gamma-2) H_z m_x))/\rho) \\
+\dots  &  \dots  &  \dots  &  \dots  &  \dots  &  \dots  &  \dots \\
+\frac{(\gamma-1) v^2-2v_x^2}{2 }  &  \frac{\gamma-1}{2}  &  (3-\gamma) v_x  & (1-\gamma) v_y  &  (1-\gamma) v_z  &  (2-\gamma) H_y  &  (2-\gamma) H_z \\
+-v_x v_y  &  0  &  v_y  &  v_x  &  0  &  -H_x  &  0 \\
+-v_x v_z  &  0  &  v_z  &  0  &  v_x  &  0  &  -H_x \\
+\frac{H_x v_y-H_y v_x}{\rho}  &  0  &  \frac{H_y}{\rho}  &  -\frac{H_x}{\rho}  &  0  &  v_x  &  0 \\
+H_x v_z-H_z v_x  &  0  &  \frac{H_z}{\rho}  &  0  &  -\frac{H_x}{\rho}  &  0  &  v_x ]
+\end{equation}
+矩阵第二行7个元素分别为
+\begin{subequations}
+	\begin{gather}
+% (2 H_x \rho (H_y m_y+H_z m_z)+m_x (\rho (-\gamma E +(\gamma-2) H_y^2+(\gamma-2) H_z^2)+2 (\gamma-1) m_y^2+2 (\gamma-1) m_z^2)+2 (\gamma-1) m_x^3)/\rho^3   \\
+-\frac{2 (H_y^2+H_z^2) v_x (1- \gamma) -2 H_x (H_y v_y+H_z v_z )(1 - \gamma) - p v_x \beta \gamma + v_x v^2 (2 - 3 \gamma + \gamma^2) \rho}{(1 - \gamma) \rho}\\
+  \gamma v_x   \\
+  -((-\gamma E \rho+(\gamma-2) H_y^2 \rho+(\gamma-2) H_z^2 \rho+3 (\gamma-1) m_x^2+(\gamma-1) m_y^2+(\gamma-1) m_z^2)/\rho^2)   \\
+  -((2 (H_x H_y \rho+(\gamma-1) m_x m_y))/\rho^2)   \\
+  -((2 (H_x H_z \rho+(\gamma-1) m_x m_z))/\rho^2)   \\
+  -((2 (H_x m_y+(\gamma-2) H_y m_x))/\rho)   \\
+  -((2 (H_x m_z+(\gamma-2) H_z m_x))/\rho) 
+\end{gather}
+\end{subequations}
+其中
+$ m_x = \rho v_x,
+m_y = \rho v_y,
+m_z = \rho v_z.$
+单元边界上的值可以取
+\begin{align}
+A_{j \pm 1/2}^n = A(u_{j \pm 1/2}^n), \qquad u_{j \pm 1/2}^n = \frac{1}{2} (u_j^n + u_{j \pm 1}^n)
+\end{align}
 \section{附件}
 \begin{enumerate}
 \item
