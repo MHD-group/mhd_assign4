@@ -6,7 +6,6 @@
 =#
 
 using PyCall
-using LaTeXStrings
 
 # %%
 @pyimport matplotlib.pyplot as plt
@@ -183,13 +182,13 @@ end
 # %%
 
 function main(C::AbstractFloat, init::Function, nx::Int = 261)
-	labels=[L"$\rho$"
-			L"$E$"
-			L"$ρv_x$"
-			L"$ρv_y$"
-			L"$ρv_z$"
-			L"$H_y$"
-			L"$H_z$"]
+	labels=["\$\\rho\$"
+			"\$E\$"
+			"\$ρv_x\$"
+			"\$ρv_y\$"
+			"\$ρv_z\$"
+			"\$H_y\$"
+			"\$H_z\$"]
 
 	C_str=string(round(C, digits=3))
 	t=0.3
