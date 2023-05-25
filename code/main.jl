@@ -10,7 +10,7 @@ using PyCall
 # %%
 @pyimport matplotlib.pyplot as plt
 @pyimport matplotlib # https://stackoverflow.com/questions/3899980/how-to-change-the-font-size-on-a-matplotlib-plot
-matplotlib.rc("font", size=8)
+matplotlib.rc("font", size=6)
 
 const γ = 5/3
 const β = 2.0
@@ -200,7 +200,8 @@ function main(C::AbstractFloat, init::Function, nx::Int = 261)
 
 	c=Cells(step=Δx, init=init)
 	fig, ax=plt.subplots(7,1)
-	fig.suptitle("t = "*string(t)*"    "*"C = "*C_str*"    "*title, fontsize=9)
+	# fig.suptitle("t = "*string(t)*"    "*"C = "*C_str*"    "*title, fontsize=9)
+	fig.suptitle("t = "*string(t)*"    "*"C = "*C_str*"    "*title)
 	for i = 1:7
 		ax[i].plot(c.x, c.u[i, :], "-.k", linewidth=0.2, label=labels[i]*"(初始值)")
 	end
@@ -208,12 +209,16 @@ function main(C::AbstractFloat, init::Function, nx::Int = 261)
 	N = round(Int, t/Δt)
 	for n = 1:N
 		flg=update!(c, flg, f, C)
+		################ plot ######################
 		if n == round(Int, N/3) || n == round(Int, 2*N/3) || n == N
 			for i = 1:7
 				ax[i].plot(c.x, c.u[i, :], linewidth=0.2, label=labels[i]*"(t = $(round(n * Δt, digits=2))s)")
 				ax[i].legend()
 			end
-		end
+			for i = 1:6
+				ax[i].set_xticks([]) # 只有最后一个有 x 轴
+			end
+		end ################ end plot #############
 	end
 	plt.savefig("../figures/"*string(init)*".pdf", bbox_inches="tight")
 	plt.show()
@@ -221,3 +226,10 @@ end
 
 
 main(0.1, init2)
+
+# f=[6,24,322]
+# A=Tridiagonal([1,1],[6,4,14], [1,1])
+
+# @time begin 
+# A \ f 
+# end
