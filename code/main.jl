@@ -6,12 +6,11 @@
 =#
 
 using PyCall
-using LaTeXStrings
 
 # %%
 @pyimport matplotlib.pyplot as plt
 @pyimport matplotlib # https://stackoverflow.com/questions/3899980/how-to-change-the-font-size-on-a-matplotlib-plot
-matplotlib.rc("font", size=8)
+matplotlib.rc("font", size=6)
 
 const γ = 5/3
 const β = 2.0
@@ -94,6 +93,33 @@ function lax_wendroff(UP::Matrix, U::Matrix, C::AbstractFloat)
 	UP[:, 1] .= U[:, 2] 
 	UP[:, end] .= U[:, end-1] 
 end
+
+l = 135
+function upwind(UP::Matrix, U::Matrix, C::AbstractFloat)
+for l in 2:size(U, 2)-1
+    # Rm, λm, Lm = U[:, l] |> U2A |> svd
+    R, λ, L = U[:, l] |> U2A |> svd
+    for k = 1:7
+        Σ=0.0
+        for i = 1:7
+            s = λ[i] >= 0 ? 1 : -1
+            # Rp, λp, Lp = U[:, l-s] |> U2A |> svd
+            # Rm, λm, Lm = U[:, l] |> svd
+            # R = 0.5*(Rm+Rp)
+            # Λ = 0.5(λ+λp)
+            # L = 0.5*(Lm+Lp)
+            for j = 1:7
+                a = s*λ[i]*R[k, i]*L[i, j]
+                Σ += a*(U[j, l] - U[j, l-s])
+            end
+        end
+        UP[k, l] =U[k, l] - C*Σ
+    end
+end
+# UP[:, 1] .= U[:, 2] 
+# UP[:, end] .= U[:, end-1] 
+end
+
 
 # λ=[1,2,3.]
 # w = [1 2 3; 2 2 4]'
@@ -181,194 +207,57 @@ end
 
 
 # %%
-C = 0.1
-Δx= 0.01
-# C = Δt/Δx
-Δt =  C * Δx
 
-nx=261
-# %%
-function problem(C::AbstractFloat, f::Function, nx::Int = 261)
+function main(C::AbstractFloat, init::Function, nx::Int = 261)
+	labels=["\$\\rho\$"
+			"\$E\$"
+			"\$ρv_x\$"
+			"\$ρv_y\$"
+			"\$ρv_z\$"
+			"\$H_y\$"
+			"\$H_z\$"]
 
-	labels=[L"$\rho$"
-			L"$E$"
-			L"$ρv_x$"
-			L"$ρv_y$"
-			L"$ρv_z$"
-			L"$H_y$"
-			L"$H_z$"]
-
-	# title = L"$m$"
-	# t=0.002
 	C_str=string(round(C, digits=3))
-	t=0.3
-	# C = 0.7/2.633
+	t=0.1
 	Δx= 2/nx
 	Δt = Δx * C
-	# f = limiter
-	f = lax_wendroff
+
+	f = upwind
 	title = f |> f2title
-	# fig, ax=plt.subplots(3,1, figsize=(12,13))
 
-
-	init = init4
 	c=Cells(step=Δx, init=init)
 	fig, ax=plt.subplots(7,1)
-	fig.suptitle("t = "*string(t)*"    "*"C = "*C_str*"    "*title, fontsize=9)
+	# fig.suptitle("t = "*string(t)*"    "*"C = "*C_str*"    "*title, fontsize=9)
+	fig.suptitle("t = "*string(t)*"    "*"C = "*C_str*"    "*title)
 	for i = 1:7
 		ax[i].plot(c.x, c.u[i, :], "-.k", linewidth=0.2, label=labels[i]*"(初始值)")
 	end
 	flg=true # flag
-	N = round(Int, t/Δt)
+	# N = round(Int, t/Δt)
+	N = round(Int, 10)
 	for n = 1:N
 		flg=update!(c, flg, f, C)
+		################ plot ######################
 		if n == round(Int, N/3) || n == round(Int, 2*N/3) || n == N
 			for i = 1:7
 				ax[i].plot(c.x, c.u[i, :], linewidth=0.2, label=labels[i]*"(t = $(round(n * Δt, digits=2))s)")
 				ax[i].legend()
 			end
-		end
+			for i = 1:6
+				ax[i].set_xticks([]) # 只有最后一个有 x 轴
+			end
+		end ################ end plot #############
 	end
 	plt.savefig("../figures/"*string(init)*".pdf", bbox_inches="tight")
 	plt.show()
-
-	w=current(c, flg)
-	tw=similar(w)
-	true_sol(c.x, tw, t)
-
-	plt.show()
-
-	c=Cells(step=Δx, init=init2)
-	flg=true # flag
-	for _ = 1:260
-		flg=update!(c, flg, f, 0.1)
-	end
-	plt.plot(c.x, c.u[1, :], linewidth=1, color="b", label=L"$\rho$(真实解)", alpha=0.5)
-	plt.show()
-
-	ax[1].plot(c.x, tw[1, :], linewidth=1, color="k", label=L"$\rho$(真实解)", alpha=0.5)
-	ax[1].plot(c.x, w[1, :], "--b", linewidth=1, marker="o", markeredgewidth=0.4, markersize=4,  markerfacecolor="none", label=L"$\rho$(数值解)")
-	ax[1].set_title("密度", fontsize=14)
-	ax[1].legend()
-	ax[3].plot(c.x, tw[2, :], linewidth=1, color="k", label=L"$m$(真实解)", alpha=0.5)
-	ax[3].plot(c.x, w[2, :], "--r", linewidth=1, marker="o", markeredgewidth=0.4, markersize=4,  markerfacecolor="none", label=L"$m$(数值解)")
-	ax[2].set_title("质量流", fontsize=14)
-	ax[3].legend()
-	ax[2].plot(c.x, tw[3, :], linewidth=1, color="k", label=L"$E$(真实解)", alpha=0.5)
-	ax[2].plot(c.x, w[3, :], "--y", linewidth=1, marker="o", markeredgewidth=0.4, markersize=4,  markerfacecolor="none", label=L"$E$(数值解)")
-	ax[3].set_title("能量", fontsize=14)
-	ax[2].legend()
-
-	# plot(c.x, circshift(w, (0, 3)), tw)
-
-	# # plt.plot(c.x, c.u[1, :], "-.k", linewidth=0.2, label="init")
-	# w = U |> U2w
-
-	# plt.plot(x, w[1, :], linewidth=1, color="b", label="Density")
-	# plt.plot(x, w[2, :], linewidth=1, color="r", label="m")
-	# plt.plot(x, w[3, :], linewidth=1, color="y", label="E")
-	# # plt.plot(c.x, c.u[1, :], "-.k", linewidth=0.2, label="init")
-	# plt.show()
-
-	# plt.title("time = "*string(t)*", "*"C = "*string(C)*", "* title )
-	# # plt.plot(c.x, c.up, linestyle="dashed", linewidth=0.4, marker="o", markeredgewidth=0.4, markersize=4,  markerfacecolor="none", label="up")
-	plt.savefig("../figures/"*string(f)*string(nx)*".pdf", bbox_inches="tight")
-	# plt.show()
-
 end
-# %%
-function problem_non(C::AbstractFloat, f::Function, nx::Int = 261)
-
-	# title = L"$m$"
-	# t=0.002
-	C_str=string(round(C, digits=3))
-	t=0.28
-	C = C/4.694
-	# C = 0.7/2.633
-	Δx= 2/nx
-	Δt = Δx * C
-	# f = limiter
-	c=Cells(step=Δx, init=init_non)
-	title = f |> f2title
-	fig, ax=plt.subplots(3,1, figsize=(12,13))
-	fig.suptitle("t = "*string(t)*"    "*"C = "*C_str*"    "*title, fontsize=16)
-	ax[1].plot(c.x, c.u[1, :], "-.k", linewidth=0.2, label=L"$\rho$(初始值)")
-	ax[3].plot(c.x, c.u[2, :], "-.k", linewidth=0.2, label=L"$m$(初始值)")
-	ax[2].plot(c.x, c.u[3, :], "-.k", linewidth=0.2, label=L"$E$(初始值)")
-
-	flg=true # flag
-	for _ = 1:round(Int, t/Δt)
-		flg=update!(c, flg, f, C)
-	end
-	U=current(c, flg)
-	w = U |> U2w
-	tw=similar(w)
-	true_sol(c.x, tw, t)
 
 
-	ax[1].plot(c.x, tw[1, :], linewidth=1, color="k", label=L"$\rho$(真实解)", alpha=0.5)
-	ax[1].plot(c.x, w[1, :], "--b", linewidth=1, marker="o", markeredgewidth=0.4, markersize=4,  markerfacecolor="none", label=L"$\rho$(数值解)")
-	ax[1].set_title("密度", fontsize=14)
-	ax[1].legend()
-	ax[3].plot(c.x, tw[2, :], linewidth=1, color="k", label=L"$m$(真实解)", alpha=0.5)
-	ax[3].plot(c.x, w[2, :], "--r", linewidth=1, marker="o", markeredgewidth=0.4, markersize=4,  markerfacecolor="none", label=L"$m$(数值解)")
-	ax[2].set_title("质量流", fontsize=14)
-	ax[3].legend()
-	ax[2].plot(c.x, tw[3, :], linewidth=1, color="k", label=L"$E$(真实解)", alpha=0.5)
-	ax[2].plot(c.x, w[3, :], "--y", linewidth=1, marker="o", markeredgewidth=0.4, markersize=4,  markerfacecolor="none", label=L"$E$(数值解)")
-	ax[3].set_title("能量", fontsize=14)
-	ax[2].legend()
+main(0.1, init2)
 
-	# plot(c.x, circshift(w, (0, 3)), tw)
+# f=[6,24,322]
+# A=Tridiagonal([1,1],[6,4,14], [1,1])
 
-	# # plt.plot(c.x, c.u[1, :], "-.k", linewidth=0.2, label="init")
-	# w = U |> U2w
-
-	# plt.plot(x, w[1, :], linewidth=1, color="b", label="Density")
-	# plt.plot(x, w[2, :], linewidth=1, color="r", label="m")
-	# plt.plot(x, w[3, :], linewidth=1, color="y", label="E")
-	# # plt.plot(c.x, c.u[1, :], "-.k", linewidth=0.2, label="init")
-	# plt.show()
-
-	# plt.title("time = "*string(t)*", "*"C = "*string(C)*", "* title )
-	# # plt.plot(c.x, c.up, linestyle="dashed", linewidth=0.4, marker="o", markeredgewidth=0.4, markersize=4,  markerfacecolor="none", label="up")
-	plt.savefig("../figures/"*string(f)*string(nx)*".pdf", bbox_inches="tight")
-	# plt.show()
-
-end
-# %%
-
-problem(0.18, limiter)
-# problem1(0.18, limiter)
-plt.show()
-
-problem(0.05, limiter, 133)
-plt.show()
-
-problem(0.5, lax_wendroff)
-plt.show()
-
-problem(0.18, NND)
-plt.show()
-
-
-problem_non(0.5, upwind_non)
-plt.show()
-
-# problem1(0.5, upwind)
-
-problem(0.5, upwind)
-plt.show()
-
-# %%
-
-function main()
-	problem(0.05, limiter)
-	# problem1(0.18, limiter)
-	problem(0.05, limiter, 133)
-	problem(0.5, lax_wendroff)
-	problem_non(0.1, upwind_non)
-	problem(0.5, upwind)
-	plt.show()
-end
-main()
+# @time begin 
+# A \ f 
+# end
