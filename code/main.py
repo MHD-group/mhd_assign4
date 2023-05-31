@@ -316,6 +316,8 @@ def TVD_u(u, C=0.5, t=100):
         um = shift(c_u, -1) - c_u
         pos_A = 0.5*Rl@pos_dl@Ll + 0.5*R@pos_d@L
         neg_A = 0.5*Rr@neg_dr@Lr + 0.5*R@neg_d@L
+        #pos_A = Rl@pos_dl@Ll
+        #neg_A = Rr@neg_dr@Lr
         #pos_A = 1*R@pos_d@L
         #neg_A = 1*R@neg_d@L
         tmp_u[nex, :, :, :] =  c_u \
@@ -375,8 +377,10 @@ if  __name__ == '__main__':
     parser.add_argument("-y", "--ylim", default="1.5,1.5,1.6,1.7,1.8,1.9,1.9", type=str, help="intput format")
     args = parser.parse_args()
 
+    print(args.watch)
     Ts = [float(idx) for idx in args.times.split(',')]
     wt = [float(idx) for idx in args.watch.split(',')]
+    print(wt)
     ylims = [float(idx) for idx in args.ylim.split(',')]
     methods = args.methods.split(',')
     if args.numbers != 0:
@@ -476,7 +480,7 @@ if  __name__ == '__main__':
     #axs[6].legend(loc="upper right")
     print(wt[0], wt[1])
     print(ylims)
-    plt.savefig('../figures/case1_fast_upwind_TVD.pdf', bbox_inches='tight')
     #plt.savefig('../figures/case1_fast_upwind_TVD.pdf', bbox_inches='tight')
+    plt.savefig('../figures/case1_slow_upwind_TVD.pdf', bbox_inches='tight')
     #plt.show()
 

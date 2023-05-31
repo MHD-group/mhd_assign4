@@ -8,7 +8,10 @@
 #python main.py -n 200 -s -1 -e 1 -C 0.1 -t 0,0.2,0.4,0.6 -m Upwind -case 1 -i U -o U
 #python main.py -n 200 -s -1 -e 1 -C 0.1 -t 0,0.2,0.4,0.6 -m Upwind -case 3 -i U -o U
 #python main.py -n 300 -s -0.1 -e 0.6 -C 0.1 -t 0,0.05,0.1 -m Upwind -case 1 -i U -o U
-python main.py -n 300 -s -0.05 -e 0.5 -C 0.05 -t 0.05,0.1 -m TVD,Upwind -case 1 -i U -o U -w 0.1,0.5 -y 1,1.015,3,4,-0.95,-0.85,-0.15,0.05,-0.15,0.05,0.97,1.17,0.97,1.17
+# case1_fast_upwind_TVD.pdf
+#python main.py -n 300 -s -0.05 -e 0.5 -C 0.05 -t 0.05,0.1 -m TVD,Upwind -case 1 -i U -o U -w 0.1,0.5 -y 1,1.015,3,4,-0.95,-0.85,-0.15,0.05,-0.15,0.05,0.97,1.17,0.97,1.17
+# case1_slow_upwind_TVD.pdf
+python main.py -n 300 -s -0.3 -e 0.5 -C 0.05 -t 0.4,0.6 -m TVD,Upwind -case 1 -i U -o U --watch=-0.3,-0.15 -y 2,5.5,4,8,-0.05,1.2,0.2,0.41,0.2,0.41,1.07,1.13,1.07,1.13
 #python main.py -n 300 -s -0.05 -e 0.45 -C 0.05 -t 0.05,0.1 -m TVD,Upwind -case 1 -i U -o U -w 0.1,0.3 -y 1,1.015,3,4,-0.95,-0.85,-0.15,0.05,-0.15,0.05,0.97,1.17,0.97,1.17
 #python main.py -n 300 -s -1 -e 1 -C 0.1 -t 0,0.2,0.4,0.6 -m TVD -case 3 -i U -o U
 #python main.py -n 300 -s -1 -e 1 -C 0.1 -t 0,0.2,0.4,0.6 -m Upwind -case 3 -i U -o U
