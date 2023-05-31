@@ -57,7 +57,10 @@ def init(x, type="W", case=0):
         ], float)
     N = x.size
     tmp = np.zeros((7, N), dtype=x.dtype)
-    conds = [x <= -0, x > 0]
+    if case <=1:
+        conds = [x <= -0, x > 0]
+    else:
+        conds = [x <= 0.2, x > 0.2]
     if type == "W":
         funcs = W[case*2:case*2+2,:].T
     elif type == "U":
@@ -67,10 +70,35 @@ def init(x, type="W", case=0):
         tmp[i] = np.piecewise(x, conds, funcs[i])
     return tmp.T
 
+# wave's ref shape from excel
+def funcRef(x, C=1, t=0):
+    conds = [x < -2.633*t,\
+             np.logical_and(x < -1.636*t, x >= -2.633*t),\
+             np.logical_and(x < 1.529*t, x >= -1.636*t),\
+             np.logical_and(x < 2.480*t, x >= 1.529*t),\
+             x >= 2.480*t]
+    func_ρ = [0.445,\
+             lambda x : (x - (-2.633*t)) * (0.345 - 0.445)/(-1.636*t +2.633*t) + 0.445,\
+             0.345,\
+             1.304,\
+             0.500]
+    func_m = [0.311,\
+             lambda x : (x - (-2.633*t)) * (0.527 - 0.311)/(-1.636*t +2.633*t) + 0.311,\
+             0.527,\
+             1.994,\
+             0.000]
+    func_E = [8.928,\
+             lambda x : (x - (-2.633*t)) * (6.570 - 8.928)/(-1.636*t +2.633*t) + 8.928,\
+             6.570,\
+             7.691,\
+             1.428]
+    return [np.piecewise(x, conds, func_ρ), np.piecewise(x, conds, func_E), np.piecewise(x, conds, func_m)]
+
+
 def U2F(U):
     F = U.copy()
     W = U2W(U)
-    F[:, 0] = U[:, 3]
+    F[:, 0] = U[:, 2]
     F[:, 1] = U[:, 2] * (W[:,2]**2 + W[:,3]**2 + W[:,4]**2\
               + (_γ*_β*W[:,1])/(U[:,0] * (_γ - 1)))\
               + 2*(U[:,5]**2*W[:,2] + U[:,6]**2*W[:,2] -\
@@ -139,6 +167,99 @@ def U2A(U):
     return A
 
 
+def shift1(X):
+    return np.pad(np.roll(X, 1, axis=0)[1:-1,:,:], ((1,), (0,), (0,)), 'edge')
+def shift_sub1(X):
+    return X - shift1(X)
+def shift_ave1(X):
+    return 0.5*(X + shift1(X))
+
+# still need to be done
+def Lax_u_n(u, C=0.5, t=100):
+    #print('calling upwind, ', w, γ, C, t)
+    N = np.size(u,0)
+    print(N)
+    f = U2F(u)
+    a = U2A(u)
+    tmp_u = np.expand_dims(np.pad(u, ((1,), (0,)), 'edge'), [0, -1]).repeat(2, axis=0)
+    F = np.expand_dims(np.pad(f, ((1,), (0,)), 'edge'), [-1])
+    A = np.pad(a, ((1,), (0,), (0,)), 'edge')
+    print("----------")
+    print(tmp_u.shape)
+    for n in range(2):
+        cur = n%2
+        nex = (n%2 + 1)%2
+        F= np.expand_dims(U2F(tmp_u[cur,:,:,0]), [-1])
+        A = U2A(tmp_u[cur,:,:,0])
+        if n == 0:
+            print(t)
+            print(F.shape)
+            print(A.shape)
+        dF = shift_sub1(F)
+        ddF = shift_sub1(dF)
+        aU = shift_ave1(tmp_u[cur,:,:,:])
+        A = U2A(aU[:,:,0])
+        Lax_term = A@dF
+        Lax_sub = shift_sub1(Lax_term)
+        tmp_u[nex,:,:,:] = tmp_u[cur,:,:,:] - 0.5*C*shift1(ddF) + 0.5*C*C*shift1(Lax_sub)
+
+#        for i in range(N):
+#            I = i+1
+#            #Am = U2A(0.5*(tmp_u[cur,I-1:I,:,0] + tmp_u[cur,I:I+1,:,0]))
+#            #Ap = U2A(0.5*(tmp_u[cur,I:I+1,:,0] + tmp_u[cur,I+1:I+2,:,0]))
+#            tmp_u[nex, I:I+1, :, :] = tmp_u[cur, I:I+1, :, :]\
+#                -0.5*C*ddF[I+1:I+2, :, :]\
+#                +0.5*C*C*(A[I+1:I+2,:,:]@dF[I+1:I+2,:,:]\
+#                -A[I:I+1]@dF[I:I+1,:,:])
+        result = tmp_u[nex,1:-1,:]
+        tmp_u = np.pad(tmp_u[:,1:-1,:,:], ((0,),(1,),(0,),(0,)), 'edge')
+    print("result:", result.shape)
+    return result
+
+def Upwind_u(u, C=0.5, t=100):
+    #print('calling upwind, ', w, γ, C, t)
+    γ = _γ
+    N = u[:,0].size
+    tmp_u = np.expand_dims(np.pad(u, ((1,), (0,)), 'edge'), [0, -1]).repeat(2, axis=0)
+    print(N, '++++', tmp_u.shape)
+    for n in range(t):
+        cur = n%2
+        nex = (n%2 + 1)%2
+        c_u = tmp_u[cur,:,:,:]
+        #dia_ = U2λ(c_u, γ)
+        #R = U2R(c_u, γ)
+        #L = U2L(c_u, γ)
+        #A = R@dia_@L
+        A = U2A(c_u[:,:,0])
+        vals, vecs = np.linalg.eig(A)
+        dia_ = vecs.copy()
+        for ii in range(N+2):
+            dia_[ii, :, :] = np.diag(vals[ii, :])
+        R = vecs
+        L = np.linalg.inv(vecs)
+        Rl = np.pad(np.roll(R, 1, axis=0)[1:-1,:,:], ((1,),(0,),(0,)), 'edge')
+        Rr = np.pad(np.roll(R, -1, axis=0)[1:-1,:,:], ((1,),(0,),(0,)), 'edge')
+        Ll = np.pad(np.roll(L, 1, axis=0)[1:-1,:,:], ((1,),(0,),(0,)), 'edge')
+        Lr = np.pad(np.roll(L, -1, axis=0)[1:-1,:,:], ((1,),(0,),(0,)), 'edge')
+        dia_l = np.pad(np.roll(dia_, 1, axis=0)[1:-1,:,:], ((1,),(0,),(0,)), 'edge')
+        dia_r = np.pad(np.roll(dia_, -1, axis=0)[1:-1,:,:], ((1,),(0,),(0,)), 'edge')
+        pos_dl = np.where(dia_l>=0, dia_l, 0)
+        neg_dl = np.where(dia_l<0, dia_l, 0)
+        pos_dr = np.where(dia_r>=0, dia_r, 0)
+        neg_dr = np.where(dia_r<0, dia_r, 0)
+        pos_d = np.where(dia_>=0, dia_, 0)
+        neg_d = np.where(dia_<0, dia_, 0)
+        up = c_u - np.pad(np.roll(c_u, 1, axis=0)[1:-1,:,:], ((1,),(0,),(0,)), 'edge')
+        um = np.pad(np.roll(c_u, -1, axis=0)[1:-1,:,:], ((1,),(0,),(0,)), 'edge') - c_u
+        #tmp_u[nex, :, :, :] =  c_u \
+        #        - C * ((0.5*Rl@pos_dl@Ll+0.5*R@pos_dl@L)@up\
+        #        + (0.5*Rr@neg_dr@Lr + 0.5*R@neg_dr@L)@um)
+        tmp_u[nex, :, :, :] =  c_u \
+                - C * ((0.5*Rl@pos_dl@Ll+0.5*R@pos_d@L)@up\
+                + (0.5*Rr@neg_dr@Lr + 0.5*R@neg_d@L)@um)
+        result = tmp_u[nex,1:-1,:,:]
+    return result
+
 def Lax_u(u, C=0.5, t=100):
     #print('calling upwind, ', w, γ, C, t)
     N = np.size(u,0)
@@ -166,6 +287,7 @@ def Lax_u(u, C=0.5, t=100):
                 +0.5*C*C*(0.5*(A[I+1:I+2,:,:] + A[I:I+1,:,:])@(F[I+1:I+2,:,:] - F[I:I+1,:,:])\
                 -0.5*(A[I:I+1,:,:] + A[I-1:I,:,:])@(F[I:I+1,:,:] - F[I-1:I,:,:]))
         result = tmp_u[nex,1:-1,:]
+        tmp_u = np.pad(tmp_u[:,1:-1,:,:], ((0,),(1,),(0,),(0,)), 'edge')
     print("result:", result.shape)
     return result
 
@@ -179,10 +301,13 @@ if  __name__ == '__main__':
     parser.add_argument("-s", "--start", default=-1, type=float, help="f(x) when t=0")
     parser.add_argument("-e", "--end", default=1, type=float, help="f(x) when t=0")
     parser.add_argument("-m", "--methods", default="Upwind,LaxWendroff", type=str, help="methods")
-    parser.add_argument("-t", "--times", default=0.1, type=float, help="time")
+    parser.add_argument("-t", "--times", default="0,0.1", type=str, help="time")
+    parser.add_argument("-case", "--case", default=0, type=int, help="case")
+    parser.add_argument("-o", "--output", default="W", type=str, help="output format")
+    parser.add_argument("-i", "--input", default="U", type=str, help="intput format")
     args = parser.parse_args()
 
-    T = args.times
+    Ts = [float(idx) for idx in args.times.split(',')]
     methods = args.methods.split(',')
     if args.numbers != 0:
         res = (args.end-args.start)/args.numbers
@@ -191,11 +316,18 @@ if  __name__ == '__main__':
     # Δx: args.resolution
     x = np.arange(args.start, args.end, res)
     # C is Δt/Δx
-    C = args.ratio/4.7
+    C = args.ratio
     # Δt
     t = C * res
 
-    u = init(x, "U", 1)
+    case = args.case
+    print("running case ", case)
+    u = init(x, args.input, case)
+    w = U2W(u)
+    print(w[1])
+    print(u[1])
+    F = U2F(u)
+    print(F[1])
     # A = U2A(u)
     # print("A:", A.shape)
 
@@ -213,22 +345,27 @@ if  __name__ == '__main__':
     fig, axs = plt.subplots(7,
                             len(methods),
                             figsize=(40, 12))
-    for (method, j) in zip(methods, range(len(methods))):
-        n_t = int(T/t)
-        if method == "Upwind":
-            # output = Upwind_u(u, C, n_t)
-            print("error input function")
-        elif method == "LaxWendroff":
-            output = Lax_u(u, C, n_t)
-        else:
-            print("error input function")
-        print(j)
-        axs[j*7+0].plot(x, output[:, 0])
-        axs[j*7+1].plot(x, output[:, 1])
-        axs[j*7+2].plot(x, output[:, 2])
-        axs[j*7+3].plot(x, output[:, 3])
-        axs[j*7+4].plot(x, output[:, 4])
-        axs[j*7+5].plot(x, output[:, 5])
-        axs[j*7+6].plot(x, output[:, 6])
+    for (T, i) in zip(Ts, range(len(Ts))):
+        for (method, j) in zip(methods, range(len(methods))):
+            n_t = int(T/t)
+            if n_t == 0:
+                output = u
+            else:
+                if method == "Upwind":
+                    output = Upwind_u(u, C, n_t)
+                elif method == "LaxWendroff":
+                    output = Lax_u_n(u, C, n_t)
+                else:
+                    print("error input function")
+            print(j)
+            if args.output == "W":
+                output = U2W(output)
+            axs[j*7+0].plot(x, output[:, 0])
+            axs[j*7+1].plot(x, output[:, 1])
+            axs[j*7+2].plot(x, output[:, 2])
+            axs[j*7+3].plot(x, output[:, 3])
+            axs[j*7+4].plot(x, output[:, 4])
+            axs[j*7+5].plot(x, output[:, 5])
+            axs[j*7+6].plot(x, output[:, 6])
     plt.show()
 
