@@ -221,7 +221,6 @@ def Upwind_u(u, C=0.5, t=100):
     γ = _γ
     N = u[:,0].size
     tmp_u = np.expand_dims(np.pad(u, ((1,), (0,)), 'edge'), [0, -1]).repeat(2, axis=0)
-    print(N, '++++', tmp_u.shape)
     for n in range(t):
         cur = n%2
         nex = (n%2 + 1)%2
@@ -260,17 +259,84 @@ def Upwind_u(u, C=0.5, t=100):
         result = tmp_u[nex,1:-1,:,:]
     return result
 
+def shift(u, i=1):
+    if i == 0:
+        return u
+    else:
+        return np.pad(np.roll(u, i, axis=0)[1:-1,:,:], ((1,),(0,),(0,)), 'edge')
+
+def get_RL(c_u):
+    A = U2A(c_u[:,:,0])
+    N = c_u[:,0,0].size
+    vals, vecs = np.linalg.eig(A)
+    dia_ = vecs.copy()
+    for ii in range(N):
+        dia_[ii, :, :] = np.diag(vals[ii, :])
+    R = vecs
+    L = np.linalg.inv(vecs)
+    return R,dia_,L
+
+def div_pn(A):
+    return np.where(A>=0, A, 0), np.where(A<0, A, 0)
+
+from numpy import logical_and as band
+from numpy import logical_not as bnot
+from numpy import logical_or as bor
+
+def minmod(A, B):
+    c1 = np.where(A > B, True, False)
+    c2 = np.where(A > 0, True, False)
+    c3 = np.where(B > 0, True, False)
+    result = np.where(band(bnot(c1), c2), A, 0)
+    result = np.where(band(c1, c2), B, result)
+    result = np.where(band(c1, bnot(c2)), A, result)
+    result = np.where(band(bnot(c1), bnot(c3)), B, result)
+    return result
+
+def TVD_u(u, C=0.5, t=100):
+    #print('calling upwind, ', w, γ, C, t)
+    γ = _γ
+    N = u[:,0].size
+    tmp_u = np.expand_dims(np.pad(u, ((1,), (0,)), 'edge'), [0, -1]).repeat(2, axis=0)
+    for n in range(t):
+        cur = n%2
+        nex = (n%2 + 1)%2
+        c_u = tmp_u[cur,:,:,:]
+        R,dia_,L = get_RL(c_u)
+        Rl = shift(R, 1)
+        Rr = shift(R, -1)
+        Ll = shift(L, 1)
+        Lr = shift(L, -1)
+        dia_l = shift(dia_, 1)
+        dia_r = shift(dia_, -1)
+        pos_dl, neg_dl = div_pn(dia_l)
+        pos_dr, neg_dr = div_pn(dia_r)
+        pos_d, neg_d = div_pn(dia_)
+        up = c_u - shift(c_u, 1)
+        um = shift(c_u, -1) - c_u
+        pos_A = 0.5*Rl@pos_dl@Ll + 0.5*R@pos_d@L
+        neg_A = 0.5*Rr@neg_dr@Lr + 0.5*R@neg_d@L
+        #pos_A = 1*R@pos_d@L
+        #neg_A = 1*R@neg_d@L
+        tmp_u[nex, :, :, :] =  c_u \
+                - C * (pos_A@up + neg_A@um)\
+                - 0.5 * C * (1 - C) *\
+                ( minmod(pos_A@up, shift(pos_A@up, -1)) -\
+                minmod(pos_A@up, shift(pos_A@up, 1)))\
+                - 0.5 * C * (1 - C) *\
+                ( minmod(shift(neg_A@um, 1), shift(neg_A@um, 0)) -\
+                minmod(shift(neg_A@um, -1), shift(neg_A@um, 0)))
+        result = tmp_u[nex,1:-1,:,:]
+    return result
+
 def Lax_u(u, C=0.5, t=100):
     #print('calling upwind, ', w, γ, C, t)
     N = np.size(u,0)
-    print(N)
     f = U2F(u)
     a = U2A(u)
     tmp_u = np.expand_dims(np.pad(u, ((1,), (0,)), 'edge'), [0, -1]).repeat(2, axis=0)
     F = np.expand_dims(np.pad(f, ((1,), (0,)), 'edge'), [-1])
     A = np.pad(a, ((1,), (0,), (0,)), 'edge')
-    print("----------")
-    print(tmp_u.shape)
     for n in range(t):
         cur = n%2
         nex = (n%2 + 1)%2
@@ -305,9 +371,13 @@ if  __name__ == '__main__':
     parser.add_argument("-case", "--case", default=0, type=int, help="case")
     parser.add_argument("-o", "--output", default="W", type=str, help="output format")
     parser.add_argument("-i", "--input", default="U", type=str, help="intput format")
+    parser.add_argument("-w", "--watch", default="0.1,0.5", type=str, help="intput format")
+    parser.add_argument("-y", "--ylim", default="1.5,1.5,1.6,1.7,1.8,1.9,1.9", type=str, help="intput format")
     args = parser.parse_args()
 
     Ts = [float(idx) for idx in args.times.split(',')]
+    wt = [float(idx) for idx in args.watch.split(',')]
+    ylims = [float(idx) for idx in args.ylim.split(',')]
     methods = args.methods.split(',')
     if args.numbers != 0:
         res = (args.end-args.start)/args.numbers
@@ -343,8 +413,8 @@ if  __name__ == '__main__':
     #plt.show()
 
     fig, axs = plt.subplots(7,
-                            len(methods),
-                            figsize=(40, 12))
+                            1,#len(methods),
+                            figsize=(40, 30))
     for (T, i) in zip(Ts, range(len(Ts))):
         for (method, j) in zip(methods, range(len(methods))):
             n_t = int(T/t)
@@ -355,17 +425,58 @@ if  __name__ == '__main__':
                     output = Upwind_u(u, C, n_t)
                 elif method == "LaxWendroff":
                     output = Lax_u_n(u, C, n_t)
+                elif method == "TVD":
+                    output = TVD_u(u, C, n_t)
                 else:
                     print("error input function")
             print(j)
             if args.output == "W":
                 output = U2W(output)
-            axs[j*7+0].plot(x, output[:, 0])
-            axs[j*7+1].plot(x, output[:, 1])
-            axs[j*7+2].plot(x, output[:, 2])
-            axs[j*7+3].plot(x, output[:, 3])
-            axs[j*7+4].plot(x, output[:, 4])
-            axs[j*7+5].plot(x, output[:, 5])
-            axs[j*7+6].plot(x, output[:, 6])
-    plt.show()
+            axs[0].plot(x, output[:, 0], linewidth=1, marker="o", markeredgewidth=0.6, markersize=4, markerfacecolor="none")
+            axs[1].plot(x, output[:, 1], linewidth=1, marker="o", markeredgewidth=0.6, markersize=4, markerfacecolor="none")
+            axs[2].plot(x, output[:, 2], linewidth=1, marker="o", markeredgewidth=0.6, markersize=4, markerfacecolor="none")
+            axs[3].plot(x, output[:, 3], linewidth=1, marker="o", markeredgewidth=0.6, markersize=4, markerfacecolor="none")
+            axs[4].plot(x, output[:, 4], linewidth=1, marker="o", markeredgewidth=0.6, markersize=4, markerfacecolor="none")
+            axs[5].plot(x, output[:, 5], linewidth=1, marker="o", markeredgewidth=0.6, markersize=4, markerfacecolor="none")
+            axs[6].plot(x, output[:, 6], linewidth=1, marker="o", markeredgewidth=0.6, markersize=4, markerfacecolor="none")
+
+    axs[0].set_xlim([wt[0], wt[1]])
+    axs[1].set_xlim([wt[0], wt[1]])
+    axs[2].set_xlim([wt[0], wt[1]])
+    axs[3].set_xlim([wt[0], wt[1]])
+    axs[4].set_xlim([wt[0], wt[1]])
+    axs[5].set_xlim([wt[0], wt[1]])
+    axs[6].set_xlim([wt[0], wt[1]])
+
+    axs[0].set_ylabel("ρ")
+    axs[1].set_ylabel("E")
+    axs[2].set_ylabel("ρv_x")
+    axs[3].set_ylabel("ρv_y")
+    axs[4].set_ylabel("ρv_x")
+    axs[5].set_ylabel("H_y")
+    axs[6].set_ylabel("H_z")
+
+    axs[0].set_ylim([ylims[0], ylims[1]])
+    axs[1].set_ylim([ylims[2], ylims[3]])
+    axs[2].set_ylim([ylims[4], ylims[5]])
+    axs[3].set_ylim([ylims[6], ylims[7]])
+    axs[4].set_ylim([ylims[8], ylims[9]])
+    axs[5].set_ylim([ylims[10], ylims[11]])
+    axs[6].set_ylim([ylims[12], ylims[13]])
+
+    #lines_labels = [ax.get_legend_handles_labels() for ax in fig.axes]
+    #lines, labels = [sum(lol, []) for lol in zip(*lines_labels)]
+    #fig.legend(lines, labels, scatterpoints = 1)
+    #axs[0].legend(loc="upper right")
+    #axs[1].legend(loc="upper right")
+    #axs[2].legend(loc="upper right")
+    #axs[3].legend(loc="upper right")
+    #axs[4].legend(loc="upper right")
+    #axs[5].legend(loc="upper right")
+    #axs[6].legend(loc="upper right")
+    print(wt[0], wt[1])
+    print(ylims)
+    plt.savefig('../figures/case1_fast_upwind_TVD.pdf', bbox_inches='tight')
+    #plt.savefig('../figures/case1_fast_upwind_TVD.pdf', bbox_inches='tight')
+    #plt.show()
 
