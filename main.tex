@@ -63,7 +63,7 @@
 \maketitle
 
 \begin{abstract}
-研究讨论一维磁流体力学 (MHD, Magnetohydrodynamics) 激波问题的有限差分数值解法, 主要采用守恒形式的\textit{Lax-Wendroff}格式，结合理论分析讨论磁声波的特性,
+研究讨论一维磁流体力学 (MHD, Magnetohydrodynamics) 激波问题的有限差分数值解法, 主要采用守恒形式的Lax-Wendroff格式，结合理论分析讨论磁声波的特性,
 以及分析数值格式的计算效果。以及其他格式如隐格式和迭代法的相关尝试。
 \end{abstract}
 
@@ -98,21 +98,7 @@ v_x H_y - v_y H_x\\
 v_x H_z - v_z H_x
 \end{array} \right] \label{Eqn:Flux}
 \end{align}
-这里 $v^2 = v_x^2 + v_y^2 + v_z^2$. 若取 $\rho_0 = 1$, $p_0 = 1$, $v_0 = 1$, $H_0 = 1/\sqrt{4\pi}$, 则 $\beta = 2$.
-
-\section{数值格式介绍}
-本次实验我们尝试设计多种格式，但是经调试，只有\textit{Lax-Wendroff}格式可以维持住慢激波的形状，其他格式以及快激波等都没能完全实现。
-\subsection{\textit{Lax-Wendroff}格式}
-\textit{Lax-Wendroff}格式适用于守恒型方程
-\begin{align}
-\frac{\partial \vb w}{\partial t} + \frac{\partial \vb F}{\partial x} = 0
-\end{align}
-其中差分格式为
-\begin{align}
-u_j^{n+1} =& u_j^n - \frac{\Delta t}{2\Delta x} (F_{j+1}^n - F_{j-1}^n) \nonumber\\
-& + \frac{\Delta t^2}{2\Delta x^2} \left[A_{j+1/2}^n (F_{j+1}^n-F_j^n) - A_{j-1/2}^n (F_j^n -
-F_{j-1}^n)\right]
-\end{align}
+这里 $v^2 = v_x^2 + v_y^2 + v_z^2$. 若取 $\rho_0 = 1$, $p_0 = 1$, $v_0 = 1$, $H_0 = 1/\sqrt{4\pi}$, 则 $\beta = 2$，
 其中 $A = \frac{\partial F}{\partial u}$, $A$ 的表达式为
 \begin{equation}
    \mqty[
@@ -124,6 +110,7 @@ F_{j-1}^n)\right]
 -v_x v_z  &  0  &  v_z  &  0  &  v_x  &  0  &  -H_x \\
 \frac{H_x v_y-H_y v_x}{\rho}  &  0  &  \frac{H_y}{\rho}  &  -\frac{H_x}{\rho}  &  0  &  v_x  &  0 \\
 H_x v_z-H_z v_x  &  0  &  \frac{H_z}{\rho}  &  0  &  -\frac{H_x}{\rho}  &  0  &  v_x ]
+\label{eq:Lax-Wendroff-A}
 \end{equation}
 矩阵第二行7个元素分别为
 \begin{subequations}
@@ -142,10 +129,8 @@ H_x v_z-H_z v_x  &  0  &  \frac{H_z}{\rho}  &  0  &  -\frac{H_x}{\rho}  &  0  & 
 $ m_x = \rho v_x,
 m_y = \rho v_y,
 m_z = \rho v_z.$
-单元边界上的值可以取
-\begin{align}
-A_{j \pm 1/2}^n = A(u_{j \pm 1/2}^n), \qquad u_{j \pm 1/2}^n = \frac{1}{2} (u_j^n + u_{j \pm 1}^n)
-\end{align}
+\section{数值格式介绍}
+本次实验我们尝试设计多种格式: Upwind, Lax-Wendroff, TVD，实现了两支间断较小的激波的模拟，其中 Upwind 和 TVD 较为稳定。
 \subsection{数值实验设计}
 
 考虑下列初值问题
@@ -275,68 +260,114 @@ W_R &= \left[\begin{array}{ccccccc}
 \end{align}
 
 \section{实验结果及分析}
-这里填入实验的图~\ref{fig:lax_wendroff2} 和图~\ref{fig:lax_wendroff4} 和分析内容。
 
-实验的图~\ref{fig:lax_wendroff2} 和图~\ref{fig:lax_wendroff4} 和分析内容。
+\subsection{Lax-Wendroff格式}
+Lax-Wendroff格式适用于守恒型方程
+\begin{align}
+\frac{\partial \vb w}{\partial t} + \frac{\partial \vb F}{\partial x} = 0
+\end{align}
+其中差分格式为
+\begin{align}
+u_j^{n+1} =& u_j^n - \frac{\Delta t}{2\Delta x} (F_{j+1}^n - F_{j-1}^n) \nonumber\\
+& + \frac{\Delta t^2}{2\Delta x^2} \left[A_{j+1/2}^n (F_{j+1}^n-F_j^n) - A_{j-1/2}^n (F_j^n -
+F_{j-1}^n)\right]
+\end{align}
+其中 $A = \frac{\partial F}{\partial u}$, $A$ 的表达式见式~\eqref{eq:Lax-Wendroff-A} . 单元边界上的值可以取
+\begin{align}
+A_{j \pm 1/2}^n = A(u_{j \pm 1/2}^n), \qquad u_{j \pm 1/2}^n = \frac{1}{2} (u_j^n + u_{j \pm 1}^n)
+\end{align}
+\subsection{Upwind格式}
+Upwind格式既适用于守恒型方程，也适用于非守恒方程，本实验设计使用非守恒方程
+\begin{align}
+\pdv{\vb u}{t} + \vb*B \vdot \pdv{\vb u}{x} = 0
+\end{align}
+差分形式为
+\begin{align}
+u_{k,l}^{n+1} =& u_{k,l}^n \nonumber\\
+& - \frac{\Delta t}{\Delta x} \sum_i \sum_j \left\{\text{sgn}(\lambda_{i,l}^n)
+ \lambda_{i,l}^n R_{ki,l}^n L_{ij,l}^n \left[u_{j,l}^n - u_{j,l-\text{sgn}(\lambda_{i,l}^n)}^n\right]\right\}
+\end{align}
+因为分解特征值之后，其特征值的物理意义为传播的波速，所以其正负号决定了迎风格式的差分方向。
+
+\subsection{TVD格式}
+TVD格式适用于非守恒方程
+\begin{align}
+\pdv{\vb u}{t} + \vb*B \vdot \pdv{\vb u}{x} = 0
+\end{align}
+TVD全称为\textit{Total Variat Diminishing}，即总变差不变或减小，代表着震荡的剧烈程度减少，能保证迭代过程中不发散。其中Minmod为某一种TVD格式，也是这次实验所采用的方法。
+Minmod差分形式为
+\begin{equation}
+\begin{aligned}
+u_{k,l}^{n+1} &= u_{k,l}^n \\
+& - \frac{\Delta t}{\Delta x} \sum_i \sum_j \bigg\{\text{sgn}(\lambda_{i,l}^n)
+ \lambda_{i,l}^n R_{ki,l}^n L_{ij,l}^n \left[u_{j,l}^n - u_{j,l-\text{sgn}(\lambda_{i,l}^n)}^n\right]\\
+& + \frac{1}{2}
+\text{sgn}(\lambda_{i,l}^n) \lambda_{i,l}^n R_{ki,l}^n L_{ij,l}^n
+	\qty[\Delta x-\text{sgn}(\lambda_{i,l}^n) \lambda_{i,l}^n R_{ki,l}^n L_{ij,l}^n \Delta t]
+ \left[\sigma_{j,l}^n - \sigma_{j,l-\text{sgn}(\lambda_{i,l}^n)}^n\right]\bigg\},
+\end{aligned}
+\end{equation}
+其中
+\begin{equation}
+	\sigma_i^n = \operatorname{Minmod} \left( \frac{u_i^n - u_{i-1}^{n}}{ \Delta x }, \frac{u_{i+1}^n - u_{i}^{n}}{ \Delta x } \right),
+\end{equation}
+\begin{equation}
+	\operatorname{Minmod}(a, b) = 
+	\begin{cases}
+		a, \qif |a| < |b| \qand ab > 0\\
+		b, \qif |a| > |b| \qand ab > 0\\
+		0, \qif ab \leq 0.
+	\end{cases}
+\end{equation}
+我们发现由于 Lax-Wendroff 格式(如图~\ref{fig:lax_wendroff2} 和图~\ref{fig:lax_wendroff4} 所示)较 Upwind 和 TVD 格式(如图~\ref{fig:upwind_tvd_1} 、图~\ref{fig:upwind_tvd_2} 和图~\ref{fig:upwind_tvd_3} 所示)而言会出现振荡，
+TVD 较 Upwind 格式，激波模拟得要更加陡峭。
 
 \begin{figure}[htpb]
 	\centering
 	\includegraphics[width=\textwidth]{figures/init2.pdf}
-	\caption{较弱的慢激波。取 \(x_0 = 0.0，\) 使用 Lax-Wendroff 格式。}%
+	\caption{Lax-Wendroff 格式计算结果, 网格点数为 261. \textbf{从上到下分别是密度 $\rho$, 能量 $E$ ，质量流 $\rho v_x, \rho v_y, \rho v_z$ 和磁场 $H_y, H_z$。}
+	其中点线是初值, 虚线 (上面的数据点用符号 $\circ$ 标注) 是 $t=0.14$ 时的数值结果, 实线是对应的真实解.}
 	\label{fig:lax_wendroff2}
 \end{figure}
 
 \begin{figure}[htpb]
 	\centering
 	\includegraphics[width=\textwidth]{figures/init4.pdf}
-	\caption{一维 MHD 慢激波.取 \(x_0 = 0.2，\) 使用 Lax-Wendroff 格式。}%
+	\caption{Lax-Wendroff 格式计算结果, 网格点数为 261. \textbf{从上到下分别是密度 $\rho$, 能量 $E$ ，质量流 $\rho v_x, \rho v_y, \rho v_z$ 和磁场 $H_y, H_z$。}
+	其中点线是初值, 虚线 (上面的数据点用符号 $\circ$ 标注) 是 $t=0.14$ 时的数值结果, 实线是对应的真实解.}
 	\label{fig:lax_wendroff4}
 \end{figure}
 
 \begin{figure}[htpb]
 	\centering
 	\includegraphics[width=\textwidth]{figures/case1_fast_upwind_TVD.pdf}
-	\caption{较弱的慢激波。取 \(x_0 = 0.0，\) 使用 Upwind 和 TVD 格式。}%
-	\label{fig:lax_wendroff2}
+	\caption{使用 Upwind 和 TVD 格式计算较弱的慢激波，取 \(x_0 = 0.0，\), 网格点数为 300. \textbf{从上到下分别是密度 $\rho$, 能量 $E$ ，质量流 $\rho v_x, \rho v_y, \rho v_z$ 和磁场 $H_y, H_z$。}
+	}%
+	\label{fig:upwind_tvd_1}
 \end{figure}
 
 \begin{figure}[htpb]
 	\centering
-	\includegraphics[width=\textwidth]{figures/case3_fast_upwind_TVD.pdf}
-	\caption{较弱的慢激波。取 \(x_0 = 0.0，\) 使用 Upwind 和 TVD 格式。}%
-	\label{fig:lax_wendroff2}
+	\includegraphics{figures/case3_fast_upwind_TVD.pdf}
+	\caption{使用 Upwind 和 TVD 格式计算较弱的慢激波，取 \(x_0 = 0.2，\), 网格点数为 300. \textbf{从上到下分别是密度 $\rho$, 能量 $E$ ，质量流 $\rho v_x, \rho v_y, \rho v_z$ 和磁场 $H_y, H_z$。}
+	}%
+	\label{fig:upwind_tvd_2}
 \end{figure}
 
 
 \begin{figure}[htpb]
 	\centering
 	\includegraphics[width=\textwidth]{figures/case1_slow_upwind_TVD.pdf}
-	\caption{较弱的慢激波。取 \(x_0 = 0.0，\) 使用 Upwind 格和 TVD 式。}%
-	\label{fig:lax_wendroff2}
+	\caption{使用 Upwind 和 TVD 格式计算较弱的慢激波，取 \(x_0 = 0.0，\), 网格点数为 300. \textbf{从上到下分别是密度 $\rho$, 能量 $E$ ，质量流 $\rho v_x, \rho v_y, \rho v_z$ 和磁场 $H_y, H_z$。}
+	}%
+	\label{fig:upwind_tvd_3}
 \end{figure}
 
 \section{其他数值方法尝试与分析}
 这里填入其他数值方法的尝试和分析，如果周四前还填不了就把这一节给删掉
 
 \section{附件}
-\begin{enumerate}
-\item
-assign4.tex--本报告 \LaTeX 源文件
-\item
-assign4.pdf--本报告 PDF (Portable Document Format) 输出文件
-\item
-References.bib -- 文献文件
-\item
-WFast077.eps--初值条件 (\ref{Eqn:WFast}) 情况下的快激波数值结果 (TVD 格式), 133网格, 对应图~\ref{Fig:WFast} (a)
-\item
-WFast261.eps--初值条件 (\ref{Eqn:WFast}) 情况下的快激波数值结果 (TVD 格式), 261网格, 对应图~\ref{Fig:WFast} (b)
-\item
-FShockNum.eps--初值条件 (\ref{Eqn:Fast}) 情况下 (快磁声激波) 数值计算得到的物理量各时刻图形 (TVD 格式), 对应图~\ref{Fig:Fast}
-\item
-SShockNum.eps--初值条件 (\ref{Eqn:Slow}) 情况下 (慢磁声激波) 数值计算得到的物理量各时刻图形 (TVD 格式), 对应图~\ref{Fig:Slow}
-\item
-MHDShock.xlsx -- 快慢激波两侧态分析的 EXCEL 表格文件
-\end{enumerate}
+附件及附件的说明见 \href{./appendix.txt}{appendix.txt} 
 
 % 以下两行是中文文献国家标准的格式, 如果安装了这两个格式, 建议使用它们
 \bibliographystyle{gbt7714-author-year}

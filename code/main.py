@@ -511,11 +511,11 @@ if __name__ == '__main__':
     #    axs[i].plot(x, u[:,i])
     #plt.show()
 
-    plt.matplotlib.rcParams["font.size"] = 12
+    plt.matplotlib.rcParams["font.size"] = 10
     fig, axs = plt.subplots(
         7,
         1,  #len(methods),
-        figsize=(7, 10))
+        figsize=(6, 7))
     for (T, i) in zip(Ts, range(len(Ts))):
         for (method, j) in zip(methods, range(len(methods))):
             n_t = int(T / t)
@@ -537,50 +537,50 @@ if __name__ == '__main__':
                         output[:, 0],
                         linewidth=1,
                         marker="o",
-                        markeredgewidth=0.6,
-                        markersize=4,
+                        markeredgewidth=0.3,
+                        markersize=2,
                         markerfacecolor="none")
             axs[1].plot(x,
                         output[:, 1],
                         linewidth=1,
                         marker="o",
-                        markeredgewidth=0.6,
-                        markersize=4,
+                        markeredgewidth=0.3,
+                        markersize=2,
                         markerfacecolor="none")
             axs[2].plot(x,
                         output[:, 2],
                         linewidth=1,
                         marker="o",
-                        markeredgewidth=0.6,
-                        markersize=4,
+                        markeredgewidth=0.3,
+                        markersize=2,
                         markerfacecolor="none")
             axs[3].plot(x,
                         output[:, 3],
                         linewidth=1,
                         marker="o",
-                        markeredgewidth=0.6,
-                        markersize=4,
+                        markeredgewidth=0.3,
+                        markersize=2,
                         markerfacecolor="none")
             axs[4].plot(x,
                         output[:, 4],
                         linewidth=1,
                         marker="o",
-                        markeredgewidth=0.6,
-                        markersize=4,
+                        markeredgewidth=0.3,
+                        markersize=2,
                         markerfacecolor="none")
             axs[5].plot(x,
                         output[:, 5],
                         linewidth=1,
                         marker="o",
-                        markeredgewidth=0.6,
-                        markersize=4,
+                        markeredgewidth=0.3,
+                        markersize=2,
                         markerfacecolor="none")
             axs[6].plot(x,
                         output[:, 6],
                         linewidth=1,
                         marker="o",
-                        markeredgewidth=0.6,
-                        markersize=4,
+                        markeredgewidth=0.3,
+                        markersize=2,
                         markerfacecolor="none")
 
     axs[0].set_xlim([wt[0], wt[1]])
@@ -621,6 +621,6 @@ if __name__ == '__main__':
     print(ylims)
     fig.tight_layout()
     # plt.savefig('../figures/case1_fast_upwind_TVD.pdf', bbox_inches='tight')
-    # plt.savefig('../figures/case1_slow_upwind_TVD.pdf', bbox_inches='tight')
-    plt.savefig('../figures/case3_fast_upwind_TVD.pdf', bbox_inches='tight')
+    plt.savefig('../figures/case1_slow_upwind_TVD.pdf', bbox_inches='tight')
+    # plt.savefig('../figures/case3_fast_upwind_TVD.pdf', bbox_inches='tight')
     #plt.show()
