@@ -379,7 +379,16 @@ $$
 多个特征值的方程组--如第三题的理想气体黎曼问题，三对角矩阵的每一个元素都是一个矩阵，同时使用显格式系数。在随时间迭代时发现数学上无法得到下一时刻的解，需要与迭代法同时使用。
 \end{enumerate}
 同时，我们在尝试使用迭代法的过程中未能成功用代码求解出稳定的图像出来。因此只能使用TVD等格式模拟较弱的快慢激波。
-\section{附件}
+
+\section{分工说明}
+徐均益编写了 \verb|main.jl|，
+实现了 Lax-Wendroff 格式，
+余航编写了代码 \verb|main.py| 与 \verb|run.sh|，
+实现了迎风格式及满足 TVD 的限制器格式。
+徐均益编写了文档初稿；余航修改了文档初稿，叙述了第八组尝试隐格式的经过，阐述了其特点；陈宇韬进行了文档编排和校验。
+
+\section{附件\protect\footnotemark}
+\footnotetext{点击 \href{https://git.lug.ustc.edu.cn/mhd/mhd_assign4}{git 仓库}查看全部文件}
 附件及附件的说明见 \href{./appendix.txt}{appendix.txt} 
 
 % 以下两行是中文文献国家标准的格式, 如果安装了这两个格式, 建议使用它们

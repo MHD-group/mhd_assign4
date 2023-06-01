@@ -11,7 +11,7 @@ using LinearAlgebra
 # %%
 @pyimport matplotlib.pyplot as plt
 @pyimport matplotlib # https://stackoverflow.com/questions/3899980/how-to-change-the-font-size-on-a-matplotlib-plot
-matplotlib.rc("font", size=20)
+matplotlib.rc("font", size=10)
 
 const γ = 5/3
 const β = 2.0
@@ -210,7 +210,7 @@ end
 # %%
 
 function main(C::AbstractFloat, init::Function, nx::Int = 261)
-	labels=["\$\\rho\$"
+	ylabels=["\$\\rho\$"
 			"\$E\$"
 			"\$ρv_x\$"
 			"\$ρv_y\$"
@@ -227,11 +227,11 @@ function main(C::AbstractFloat, init::Function, nx::Int = 261)
 	title = f |> f2title
 
 	c=Cells(step=Δx, init=init)
-	fig, ax=plt.subplots(7,1, figsize=(20, 30))
+	fig, ax=plt.subplots(7,1, figsize=(6, 7))
 	# fig.suptitle("t = "*string(t)*"    "*"C = "*C_str*"    "*title, fontsize=9)
-	fig.suptitle("t = "*string(t)*"    "*"C = "*C_str*"    "*title)
+	# fig.suptitle("t = "*string(t)*"    "*"C = "*C_str*"    "*title)
 	for i = 1:7
-		ax[i].plot(c.x, c.u[i, :], "-.k", linewidth=1, label=labels[i]*"(初始值)")
+		ax[i].plot(c.x, c.u[i, :], "-.k", linewidth=1)
 	end
 	flg=true # flag
 	N = round(Int, t/Δt)
@@ -241,8 +241,9 @@ function main(C::AbstractFloat, init::Function, nx::Int = 261)
 		################ plot ######################
 		if n == round(Int, N/3) || n == round(Int, 2*N/3) || n == N
 			for i = 1:7
-				ax[i].plot(c.x, c.u[i, :], linewidth=1, marker="o", markerfacecolor="none", label=labels[i]*"(t = $(round(n * Δt, digits=2))s)")
+				ax[i].plot(c.x, c.u[i, :], linewidth=1, marker="o", markerfacecolor="none", markeredgewidth=0.3, markersize=2, label="t = $(round(n * Δt, digits=2))s")
 				ax[i].legend()
+				ax[i].set_ylabel(ylabels[i]) 
 			end
 			for i = 1:6
 				ax[i].set_xticks([]) # 只有最后一个有 x 轴
