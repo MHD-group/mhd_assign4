@@ -6,11 +6,12 @@
 =#
 
 using PyCall
+using LinearAlgebra
 
 # %%
 @pyimport matplotlib.pyplot as plt
 @pyimport matplotlib # https://stackoverflow.com/questions/3899980/how-to-change-the-font-size-on-a-matplotlib-plot
-matplotlib.rc("font", size=6)
+matplotlib.rc("font", size=20)
 
 const γ = 5/3
 const β = 2.0
@@ -218,29 +219,29 @@ function main(C::AbstractFloat, init::Function, nx::Int = 261)
 			"\$H_z\$"]
 
 	C_str=string(round(C, digits=3))
-	t=0.1
+	t=0.3
 	Δx= 2/nx
 	Δt = Δx * C
 
-	f = upwind
+	f = lax_wendroff
 	title = f |> f2title
 
 	c=Cells(step=Δx, init=init)
-	fig, ax=plt.subplots(7,1)
+	fig, ax=plt.subplots(7,1, figsize=(20, 30))
 	# fig.suptitle("t = "*string(t)*"    "*"C = "*C_str*"    "*title, fontsize=9)
 	fig.suptitle("t = "*string(t)*"    "*"C = "*C_str*"    "*title)
 	for i = 1:7
-		ax[i].plot(c.x, c.u[i, :], "-.k", linewidth=0.2, label=labels[i]*"(初始值)")
+		ax[i].plot(c.x, c.u[i, :], "-.k", linewidth=1, label=labels[i]*"(初始值)")
 	end
 	flg=true # flag
-	# N = round(Int, t/Δt)
-	N = round(Int, 10)
+	N = round(Int, t/Δt)
+	# N = round(Int, 10)
 	for n = 1:N
 		flg=update!(c, flg, f, C)
 		################ plot ######################
 		if n == round(Int, N/3) || n == round(Int, 2*N/3) || n == N
 			for i = 1:7
-				ax[i].plot(c.x, c.u[i, :], linewidth=0.2, label=labels[i]*"(t = $(round(n * Δt, digits=2))s)")
+				ax[i].plot(c.x, c.u[i, :], linewidth=1, marker="o", markerfacecolor="none", label=labels[i]*"(t = $(round(n * Δt, digits=2))s)")
 				ax[i].legend()
 			end
 			for i = 1:6
@@ -253,7 +254,7 @@ function main(C::AbstractFloat, init::Function, nx::Int = 261)
 end
 
 
-main(0.1, init2)
+main(0.1, init4)
 
 # f=[6,24,322]
 # A=Tridiagonal([1,1],[6,4,14], [1,1])
