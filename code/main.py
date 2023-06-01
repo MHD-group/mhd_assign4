@@ -481,6 +481,7 @@ if  __name__ == '__main__':
     print(wt[0], wt[1])
     print(ylims)
     #plt.savefig('../figures/case1_fast_upwind_TVD.pdf', bbox_inches='tight')
-    plt.savefig('../figures/case1_slow_upwind_TVD.pdf', bbox_inches='tight')
+    #plt.savefig('../figures/case1_slow_upwind_TVD.pdf', bbox_inches='tight')
+    plt.savefig('../figures/case3_fast_upwind_TVD.pdf', bbox_inches='tight')
     #plt.show()
 
