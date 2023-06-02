@@ -95,30 +95,30 @@ function lax_wendroff(UP::Matrix, U::Matrix, C::AbstractFloat)
 	UP[:, end] .= U[:, end-1] 
 end
 
-l = 135
 function upwind(UP::Matrix, U::Matrix, C::AbstractFloat)
-for l in 2:size(U, 2)-1
-    # Rm, λm, Lm = U[:, l] |> U2A |> svd
-    R, λ, L = U[:, l] |> U2A |> svd
-    for k = 1:7
-        Σ=0.0
-        for i = 1:7
-            s = λ[i] >= 0 ? 1 : -1
-            # Rp, λp, Lp = U[:, l-s] |> U2A |> svd
-            # Rm, λm, Lm = U[:, l] |> svd
-            # R = 0.5*(Rm+Rp)
-            # Λ = 0.5(λ+λp)
-            # L = 0.5*(Lm+Lp)
-            for j = 1:7
-                a = s*λ[i]*R[k, i]*L[i, j]
-                Σ += a*(U[j, l] - U[j, l-s])
-            end
-        end
-        UP[k, l] =U[k, l] - C*Σ
-    end
-end
-# UP[:, 1] .= U[:, 2] 
-# UP[:, end] .= U[:, end-1] 
+	for l in 2:size(U, 2)-1
+		# Rm, λm, Lm = U[:, l] |> U2A |> svd
+		λ,R  = U[:, l] |> U2A |> eigen
+		L = inv(R)
+		for k = 1:7
+			Σ=0.0
+			for i = 1:7
+				s = λ[i] >= 0 ? 1 : -1
+				# Rp, λp, Lp = U[:, l-s] |> U2A |> svd
+				# Rm, λm, Lm = U[:, l] |> svd
+				# R = 0.5*(Rm+Rp)
+				# Λ = 0.5(λ+λp)
+				# L = 0.5*(Lm+Lp)
+				for j = 1:7
+					a = s*λ[i]*R[k, i]*L[i, j]
+					Σ += a*(U[j, l] - U[j, l-s])
+				end
+			end
+			UP[k, l] =U[k, l] - C*Σ
+		end
+	end
+	# UP[:, 1] .= U[:, 2] 
+	# UP[:, end] .= U[:, end-1] 
 end
 
 
@@ -219,11 +219,11 @@ function main(C::AbstractFloat, init::Function, nx::Int = 261)
 			"\$H_z\$"]
 
 	C_str=string(round(C, digits=3))
-	t=0.3
+	t=0.1
 	Δx= 2/nx
 	Δt = Δx * C
 
-	f = lax_wendroff
+	f = upwind
 	title = f |> f2title
 
 	c=Cells(step=Δx, init=init)
@@ -239,9 +239,9 @@ function main(C::AbstractFloat, init::Function, nx::Int = 261)
 	for n = 1:N
 		flg=update!(c, flg, f, C)
 		################ plot ######################
-		if n == round(Int, N/3) || n == round(Int, 2*N/3) || n == N
+		if n == round(Int, N/2) || n == round(Int, 2*N/2) || n == N
 			for i = 1:7
-				ax[i].plot(c.x, c.u[i, :], linewidth=1, marker="o", markerfacecolor="none", markeredgewidth=0.3, markersize=2, label="t = $(round(n * Δt, digits=2))s")
+				ax[i].plot(c.x, c.u[i, :], linewidth=1, marker="o", markerfacecolor="none", markeredgewidth=0.3, markersize=2, label="t = $(round(n * Δt, digits=2))")
 				ax[i].legend()
 				ax[i].set_ylabel(ylabels[i]) 
 			end
@@ -250,7 +250,7 @@ function main(C::AbstractFloat, init::Function, nx::Int = 261)
 			end
 		end ################ end plot #############
 	end
-	plt.savefig("../figures/"*string(init)*".pdf", bbox_inches="tight")
+	plt.savefig("../figures/"*string(f)*"_"*string(init)*".pdf", bbox_inches="tight")
 	plt.show()
 end
 
