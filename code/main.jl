@@ -221,11 +221,11 @@ function main(C::AbstractFloat, init::Function, nx::Int = 261)
 			"\$H_z\$"]
 
 	C_str=string(round(C, digits=3))
-	t=0.1
+	t=0.2
 	Δx= 2/nx
 	Δt = Δx * C
 
-	f = lax_wendroff
+	f = upwind
 	title = f |> f2title
 
 	c=Cells(step=Δx, init=init)
@@ -259,7 +259,7 @@ function main(C::AbstractFloat, init::Function, nx::Int = 261)
 end
 
 
-main(0.1, init4)
+main(0.1, init2)
 
 # f=[6,24,322]
 # A=Tridiagonal([1,1],[6,4,14], [1,1])
