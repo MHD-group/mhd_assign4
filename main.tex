@@ -130,6 +130,16 @@ H_x v_z-H_z v_x  &  0  &  \frac{H_z}{\rho}  &  0  &  -\frac{H_x}{\rho}  &  0  & 
 $ m_x = \rho v_x,
 m_y = \rho v_y,
 m_z = \rho v_z.$
+特征值为\(v_x, v_x \pm c_s, v_x \pm b_x, v_x \pm c_f\)，其中
+\begin{align*}
+	& a = \sqrt{\frac{\beta \gamma p}{\rho}}, \quad \beta = \frac{4\pi p_0 }{B_0^2} \\
+	& b_x = \abs{B_x} / \sqrt{\rho} \\
+	& b_{\perp} = \sqrt{B_y^2 + B_z^2} / \sqrt{\rho} \\
+	& b^2 = b_x^2 + b_z^2 \\
+	& c_s=\left\{\frac{1}{2}\left(a^2+b^2-\sqrt{\left.\left(a^2+b^2\right)^2-4 a^2 b_x^2\right)}\right\}^{1 / 2}\right. \\
+	& c_f=\left\{\frac{1}{2}\left(a^2+b^2+\sqrt{\left.\left(a^2+b^2\right)^2-4 a^2 b_x^2\right)}\right\}^{1 / 2}\right. .
+\end{align*}
+
 \section{数值格式介绍}
 本次实验我们尝试设计多种格式: Upwind, Lax-Wendroff, TVD，实现了两支间断较小的激波的模拟，其中 Upwind 和 TVD 较为稳定。
 \subsection{数值实验设计}
@@ -382,7 +392,7 @@ $$
 
 \section{分工说明}
 徐均益编写了 \verb|main.jl|，
-实现了 Lax-Wendroff 格式，
+实现了 Lax-Wendroff 格式和迎风格式，
 余航编写了代码 \verb|main.py| 与 \verb|run.sh|，
 实现了迎风格式及满足 TVD 的限制器格式。
 徐均益编写了文档初稿；余航修改了文档初稿，叙述了第八组尝试隐格式的经过，阐述了其特点；陈宇韬进行了文档编排和校验。

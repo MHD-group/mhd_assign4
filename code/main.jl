@@ -100,6 +100,8 @@ function upwind(UP::Matrix, U::Matrix, C::AbstractFloat)
 		# Rm, λm, Lm = U[:, l] |> U2A |> svd
 		λ,R  = U[:, l] |> U2A |> eigen
 		L = inv(R)
+		# R,λ,Lt  = U[:, l] |> U2A |> svd
+		# L = Lt'
 		for k = 1:7
 			Σ=0.0
 			for i = 1:7
@@ -223,7 +225,7 @@ function main(C::AbstractFloat, init::Function, nx::Int = 261)
 	Δx= 2/nx
 	Δt = Δx * C
 
-	f = upwind
+	f = lax_wendroff
 	title = f |> f2title
 
 	c=Cells(step=Δx, init=init)
@@ -242,7 +244,7 @@ function main(C::AbstractFloat, init::Function, nx::Int = 261)
 		if n == round(Int, N/2) || n == round(Int, 2*N/2) || n == N
 			for i = 1:7
 				ax[i].plot(c.x, c.u[i, :], linewidth=1, marker="o", markerfacecolor="none", markeredgewidth=0.3, markersize=2, label="t = $(round(n * Δt, digits=2))")
-				ax[i].legend()
+				ax[i].legend(loc="upper right")
 				ax[i].set_ylabel(ylabels[i]) 
 			end
 			for i = 1:6
@@ -250,6 +252,8 @@ function main(C::AbstractFloat, init::Function, nx::Int = 261)
 			end
 		end ################ end plot #############
 	end
+	# plt.subplots_adjust(wspace=0, hspace=0)
+	fig.tight_layout(pad=0.08)
 	plt.savefig("../figures/"*string(f)*"_"*string(init)*".pdf", bbox_inches="tight")
 	plt.show()
 end
